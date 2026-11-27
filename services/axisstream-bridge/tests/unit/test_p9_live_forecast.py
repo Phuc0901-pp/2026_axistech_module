@@ -167,7 +167,23 @@ def test_ut_059_metnorway_forecast_mapper() -> None:
                 "fog": 0.0,
                 "next1h": {"symbol": "fair_day", "precipitation": 0.0, "probabilityOfPrecipitation": 10.0},
                 "next6h": {"precipitation": 0.3},
-            }
+            },
+            {
+                "time": "2026-11-26T09:00:00Z",
+                "timeLocal": "2026-11-26T16:00",
+                "intervalHours": 1,
+                "isNight": False,
+                "airTemperature": 28.5,
+                "feelsLike": 31.9,
+                "dewPoint": 22.6,
+                "relativeHumidity": 70.8,
+                "airPressure": 1014.1,
+                "windSpeed": 8.3,
+                "windDirection": 21.9,
+                "uvIndexClearSky": 5.2,
+                "cloudCover": 82.0,
+                "next1h": {"symbol": "partlycloudy_day", "precipitation": 0.0},
+            },
         ],
     }
     report = AxisStreamForecastClient.map_metnorway_payload(raw)
@@ -176,6 +192,11 @@ def test_ut_059_metnorway_forecast_mapper() -> None:
     assert len(report.days) == 7
     assert report.steps[0].feels_like == 37.0
     assert report.steps[0].precipitation_6h == 0.3
+    assert report.steps[1].temperature == 28.5
+    assert report.steps[1].humidity == 70.8
+    assert report.steps[1].pressure == 1014.1
+    assert report.steps[1].uv_index == 5.2
+    assert report.steps[1].dew_point == 22.6
 
 
 @respx.mock

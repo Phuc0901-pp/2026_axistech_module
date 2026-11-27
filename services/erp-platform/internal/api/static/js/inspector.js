@@ -28,6 +28,10 @@ window.ERPInspector = (() => {
       ? window.ERPCharts.renderSoilDepthHtml(snap.readings)
       : "";
 
+    const powerState = typeof window.getDevicePowerState === "function"
+      ? window.getDevicePowerState(device, snap)
+      : { isOn: device.active !== false && snap.status === "LIVE", label: (device.active !== false && snap.status === "LIVE") ? "ON" : "OFF", reason: snap.status };
+
     body.innerHTML = `
       <div style="display:flex;align-items:center;gap:12px;">
         <div class="icon-avatar" style="width:56px;height:56px;">${avatarHtml}</div>
@@ -38,7 +42,7 @@ window.ERPInspector = (() => {
       </div>
 
       <div class="metric-grid">
-        <div class="metric-box"><div class="metric-name">Power</div><div class="metric-val">${device.active !== false && snap.status === "LIVE" ? `<span class="power-pill on"><span class="power-dot"></span>ON</span>` : `<span class="power-pill off"><span class="power-dot"></span>OFF</span>`}</div></div>
+        <div class="metric-box"><div class="metric-name">Power</div><div class="metric-val">${powerState.isOn ? `<span class="power-pill on"><span class="power-dot"></span>ON · ${powerState.reason}</span>` : `<span class="power-pill off"><span class="power-dot"></span>OFF · ${powerState.reason}</span>`}</div></div>
         <div class="metric-box"><div class="metric-name">Telemetry</div><div class="metric-val">${snap.status}</div></div>
         <div class="metric-box"><div class="metric-name">Battery</div><div class="metric-val tabular-nums">${meta.battery_level != null ? meta.battery_level + "%" : "-"}</div></div>
         <div class="metric-box"><div class="metric-name">Signal</div><div class="metric-val tabular-nums">${rssiBarsHtml(meta.signal_strength_dbm)} ${meta.signal_strength_dbm != null ? meta.signal_strength_dbm + " dBm" : "-"}</div></div>

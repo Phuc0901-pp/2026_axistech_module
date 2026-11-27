@@ -70,20 +70,25 @@ class AxisStreamForecastClient:
                 continue
             next1 = s.get("next1h") or {}
             next6 = s.get("next6h") or {}
+            temp_val = s.get("airTemperature") if s.get("airTemperature") is not None else s.get("temperature")
+            rh_val = s.get("relativeHumidity") if s.get("relativeHumidity") is not None else s.get("humidity")
+            pres_val = s.get("airPressure") if s.get("airPressure") is not None else s.get("pressure")
+            uv_val = s.get("uvIndexClearSky") if s.get("uvIndexClearSky") is not None else s.get("uvIndex")
             steps.append(
                 ForecastStep(
                     time_utc=t_utc,
                     time_local=str(s.get("timeLocal") or ""),
                     interval_hours=int(s.get("intervalHours") or 1),
                     is_night=bool(s.get("isNight", False)),
-                    temperature=parse_numeric(s.get("temperature")),
+                    temperature=parse_numeric(temp_val),
                     feels_like=parse_numeric(s.get("feelsLike")),
-                    humidity=parse_numeric(s.get("humidity")),
-                    pressure=parse_numeric(s.get("pressure")),
+                    dew_point=parse_numeric(s.get("dewPoint")),
+                    humidity=parse_numeric(rh_val),
+                    pressure=parse_numeric(pres_val),
                     wind_speed=parse_numeric(s.get("windSpeed")),
                     wind_gust=parse_numeric(s.get("windGust")),
                     wind_direction=parse_numeric(s.get("windDirection")),
-                    uv_index=parse_numeric(s.get("uvIndex")),
+                    uv_index=parse_numeric(uv_val),
                     cloud_cover=parse_numeric(s.get("cloudCover")),
                     cloud_cover_low=parse_numeric(s.get("cloudCoverLow")),
                     cloud_cover_medium=parse_numeric(s.get("cloudCoverMedium")),

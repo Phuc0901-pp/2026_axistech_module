@@ -45,15 +45,32 @@
   function getDevicePowerState(dev, snap) {
     const devActive = dev ? dev.active !== false : true;
     const snapStatus = String(snap?.status || "UNKNOWN").toUpperCase();
-    const isOn = devActive && snapStatus === "LIVE";
-    const reason = !devActive ? "Disabled" : snapStatus === "LIVE" ? "Active" : snapStatus === "OFFLINE" ? "Offline" : "No Signal";
+    const rawTs = snap?.latest_timestamp_utc || snap?.readings?.[0]?.timestamp_utc || "";
+    const tsMs = rawTs ? Date.parse(rawTs) : NaN;
+    const intervalMatch = String(snap?.metadata?.reading_interval || "").match(/(\d+)/);
+    const intervalMins = intervalMatch ? Number(intervalMatch[1]) : 15;
+    const staleMs = Math.max(6 * 3600 * 1000, intervalMins * 6 * 60 * 1000);
+    const ageMs = isFinite(tsMs) ? Date.now() - tsMs : Infinity;
+    const isFresh = isFinite(tsMs) && ageMs <= staleMs;
+    const isOn = devActive && snapStatus === "LIVE" && isFresh;
+
+    let reason = "No Signal";
+    if (!devActive) reason = "Disabled";
+    else if (snapStatus === "OFFLINE") reason = "Offline";
+    else if (!isFinite(tsMs) || snapStatus === "NO_DATA") reason = "No Signal";
+    else if (!isFresh) {
+      const hoursAgo = Math.max(1, Math.round(ageMs / 3600000));
+      reason = hoursAgo >= 24 ? `Offline ${Math.round(hoursAgo / 24)}d ago` : `Offline ${hoursAgo}h ago`;
+    } else reason = "Active";
+
     return { isOn, label: isOn ? "ON" : "OFF", reason };
   }
+  window.getDevicePowerState = getDevicePowerState;
 
   function powerBadge(dev, snap) {
     const p = getDevicePowerState(dev, snap);
     const ic = window.ERPIcons ? window.ERPIcons.iconHtml(p.isOn ? "power" : "power-off", 12) : "";
-    return `<span class="power-pill ${p.isOn ? "on" : "off"}" title="Power: ${p.label} (${p.reason})"><span class="power-dot"></span>${ic}<span>${p.label}</span></span>`;
+    return `<span class="power-pill ${p.isOn ? "on" : "off"}" title="Power: ${p.label} (${p.reason})"><span class="power-dot"></span>${ic}<span>${p.label}</span><small style="opacity:0.8;font-weight:500;">· ${p.reason}</small></span>`;
   }
 
   function renderTablePagination(pagerEl, totalItems, currentPage, pageSize, onPageChange) {
@@ -762,13 +779,15 @@
     const curSymbolHtml = cur ? window.ERPIcons.weatherSymbolBadgeHtml(cur.symbol) : "";
     if ($("forecastSymbolStrip")) {
       $("forecastSymbolStrip").innerHTML = fcSteps.slice(0, 10).map((s) => {
-        const hhmm = String(s.time_utc || "").slice(11, 16) || "-";
+        const hhmm = s.time_local
+          ? `${String(s.time_local).slice(11, 16)}`
+          : `${String(s.time_utc || "").slice(11, 16) || "-"} UTC`;
         const symMeta = window.ERPIcons.getWeatherSymbolMeta(s.symbol);
         return `<div class="forecast-hour-chip" style="border-top:2px solid ${symMeta.color};">
-          <div class="forecast-hour-time">${hhmm} UTC</div>
+          <div class="forecast-hour-time">${hhmm}</div>
           ${window.ERPIcons.weatherSymbolHtml(s.symbol, 20)}
           <div class="forecast-hour-temp tabular-nums">${f(s.temperature, "°C")}</div>
-          <div class="kpi-sub tabular-nums" style="margin-top:0;font-size:0.69rem;">${f(s.precipitation_1h ?? 0, " mm")}</div>
+          <div class="kpi-sub tabular-nums" style="margin-top:0;font-size:0.69rem;">RH ${f(s.humidity, "%")} · ${f(s.precipitation_1h ?? 0, " mm")}</div>
         </div>`;
       }).join("");
     }
@@ -780,20 +799,24 @@
         ? `<span class="badge badge-warn">High UV</span>`
         : `<span class="badge badge-ok">Low / Moderate UV</span>`;
 
-    const fcPts = (fn) => fcSteps.filter((s) => fn(s) != null).map((s) => ({ t: String(s.time_utc || "").slice(11, 16), v: Number(fn(s)) }));
+    const fcPts = (fn) => fcSteps.filter((s) => fn(s) != null).map((s) => ({ t: String(s.time_local || s.time_utc || "").slice(11, 16), v: Number(fn(s)) }));
+    const tempSeries = [
+      { label: "Temp", unit: "°C", color: "#38bdf8", points: fcPts((s) => s.temperature) },
+      { label: "Feels Like", unit: "°C", color: "#f59e0b", points: fcPts((s) => s.feels_like) },
+    ];
+    const dewPts = fcPts((s) => s.dew_point);
+    if (dewPts.length) tempSeries.push({ label: "Dew Point", unit: "°C", color: "#22c55e", points: dewPts });
+
     window.ERPCharts.renderComponentChartsGrid($("forecastComponentCharts"), [
       {
         id: "fc_temp",
-        title: "Air Temp & Feels Like",
-        subtitle: "2m ambient & apparent thermal curve",
+        title: "Air Temp, Feels Like & Dew Point",
+        subtitle: "2m ambient, apparent & dew point thermal curve",
         unit: "°C",
         icon: "thermometer-sun",
         accentColor: "#f59e0b",
         badgeHtml: curSymbolHtml,
-        series: [
-          { label: "Temp", unit: "°C", color: "#38bdf8", points: fcPts((s) => s.temperature) },
-          { label: "Feels Like", unit: "°C", color: "#f59e0b", points: fcPts((s) => s.feels_like) },
-        ],
+        series: tempSeries,
       },
       {
         id: "fc_rain",
