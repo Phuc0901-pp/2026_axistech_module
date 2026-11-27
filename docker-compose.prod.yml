@@ -5,17 +5,13 @@ services:
     command: ["postgres", "-c", "shared_buffers=128MB", "-c", "work_mem=4MB", "-c", "max_connections=60"]
     env_file:
       - ./.env.prod
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-TbsgAgtech_db}
-      POSTGRES_USER: ${POSTGRES_USER:-agtech_admin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-CHANGE_ME_POSTGRES_PASSWORD}
     volumes:
       - ./db/migrations:/docker-entrypoint-initdb.d:ro
       - pg_data:/var/lib/postgresql/data
     networks:
       - agtech_internal
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agtech_admin} -d ${POSTGRES_DB:-TbsgAgtech_db}"]
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER:-agtech_admin}\" -d \"$${POSTGRES_DB:-TbsgAgtech_db}\""]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -34,8 +30,6 @@ services:
       AXISSTREAM_SQLITE_PATH: /data/bridge_state.db
       POSTGRES_HOST: postgres
       POSTGRES_PORT: "5432"
-      POSTGRES_DB: ${POSTGRES_DB:-TbsgAgtech_db}
-      POSTGRES_USER: ${POSTGRES_USER:-agtech_admin}
     volumes:
       - bridge_data:/data
     networks:
@@ -44,8 +38,8 @@ services:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health/ready')"]
       interval: 15s
       timeout: 5s
-      retries: 3
-      start_period: 15s
+      retries: 5
+      start_period: 30s
 
   erp-platform:
     build:
@@ -64,9 +58,6 @@ services:
       ERP_DATA_FILE_PATH: /data/erp_state.json
       POSTGRES_HOST: postgres
       POSTGRES_PORT: "5432"
-      POSTGRES_DB: ${POSTGRES_DB:-TbsgAgtech_db}
-      POSTGRES_USER: ${POSTGRES_USER:-agtech_admin}
-      ERP_REQUIRE_API_KEY: ${ERP_REQUIRE_API_KEY:-true}
     expose:
       - "8080"
     volumes:

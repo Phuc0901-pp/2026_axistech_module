@@ -888,6 +888,9 @@ func TestGUT060_PostgresComposeIsolationAndMigrationContract(t *testing.T) {
 		if strings.Contains(txt, "5432:5432") {
 			t.Fatalf("%s must NOT expose Postgres port 5432 on host network", composeName)
 		}
+		if strings.Contains(txt, "POSTGRES_PASSWORD:") || strings.Contains(txt, "POSTGRES_DB: ${") {
+			t.Fatalf("%s must NOT override .env.prod Postgres variables via environment interpolation", composeName)
+		}
 	}
 	sql003, err := os.ReadFile(filepath.Join(repoRoot, "db", "migrations", "003_security_rls_and_audit_immutability.sql"))
 	if err != nil {
