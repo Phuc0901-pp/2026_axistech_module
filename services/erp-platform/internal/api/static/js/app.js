@@ -1586,6 +1586,23 @@
   if ($("copyEmbedUrlBtn")) $("copyEmbedUrlBtn").addEventListener("click", () => copyUrlToClipboard($("copyEmbedUrlBtn"), resolveCurrentModuleShare().embedUrl));
   window.addEventListener("popstate", () => applyRouteFromLocation());
 
+  let resizeTimer = null;
+  const handleViewportReflow = () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      overviewMap.invalidateSize();
+      fullMap.invalidateSize();
+      apiModuleMap.invalidateSize();
+      if (!state.dash) return;
+      if (state.activeTab === "overview") renderCascadingStep3();
+      else if (state.activeTab === "telemetry") renderTelemetryTrendChart();
+      else if (state.activeTab === "forecast" && state.forecast) renderForecast(state.forecast);
+      else if (state.activeTab === "api-module") renderApiModuleDevice();
+    }, 180);
+  };
+  window.addEventListener("resize", handleViewportReflow);
+  window.addEventListener("orientationchange", handleViewportReflow);
+
   window.ERPIcons.refresh();
   refreshAll().catch(console.error);
 })();

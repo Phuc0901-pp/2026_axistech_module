@@ -2,7 +2,7 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>AxisTech Isolated Module View — tbsgagtech</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/vendor/leaflet.min.css" />
@@ -56,7 +56,7 @@
           <button class="map-chip" data-fit="1"><i data-lucide="maximize-2"></i>Fit</button>
         </div>
       </div>
-      <div id="standaloneMap" class="map-canvas" style="height:320px;"></div>
+      <div id="standaloneMap" class="map-canvas standalone-map"></div>
       <div class="map-footer">
         <span id="standaloneCoords" class="mono">GPS: Hover satellite map</span>
         <span id="standaloneGeoSummary" class="mono">WGS84 Verified</span>
@@ -84,7 +84,7 @@
             <span id="standaloneChartBadge" class="badge badge-info tabular-nums">-</span>
           </div>
           <div class="chart-wrap">
-            <canvas id="standaloneChartCanvas" class="erp-canvas" style="height:290px;"></canvas>
+            <canvas id="standaloneChartCanvas" class="erp-canvas standalone-chart"></canvas>
             <div id="standaloneChartTooltip" class="chart-tooltip"></div>
           </div>
         </div>

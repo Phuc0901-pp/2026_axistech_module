@@ -2,7 +2,7 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>AxisTech ISO ERP — Enterprise AgTech Telemetry &amp; Operations</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/vendor/leaflet.min.css" />
@@ -47,10 +47,14 @@
         </button>
       </aside>
     </div>
+    <div id="u417Backdrop" class="u417-backdrop" aria-hidden="true"></div>
 
     <main class="main-area">
       <header class="topbar">
         <div class="topbar-left">
+          <button id="mobileMenuBtn" type="button" class="btn btn-ghost mobile-menu-btn" aria-label="Open navigation menu" aria-expanded="false" aria-controls="u417-erp-sb">
+            <i data-lucide="menu"></i>
+          </button>
           <label for="projectSelect" class="sr-only">Project</label>
           <select id="projectSelect" class="select-input"></select>
           <button id="quickSearchBtn" class="btn btn-ghost">

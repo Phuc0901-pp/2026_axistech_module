@@ -815,6 +815,63 @@ func TestGUT057_CollapsibleSidebarU417NavigationAndA11y(t *testing.T) {
 	}
 }
 
+func TestGUT058_ResponsiveMobileTabletBreakpointsAndTouchSupport(t *testing.T) {
+	router, _ := setupTestRouter(t)
+
+	indexRec := httptest.NewRecorder()
+	router.ServeHTTP(indexRec, httptest.NewRequest(http.MethodGet, "/", nil))
+	if indexRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for /, got %d", indexRec.Code)
+	}
+	indexHTML := indexRec.Body.String()
+	for _, tok := range []string{"viewport-fit=cover", `id="mobileMenuBtn"`, `id="u417Backdrop"`} {
+		if !strings.Contains(indexHTML, tok) {
+			t.Fatalf("index.html missing responsive drawer token %q", tok)
+		}
+	}
+
+	modRec := httptest.NewRecorder()
+	router.ServeHTTP(modRec, httptest.NewRequest(http.MethodGet, "/tbsgagtech/v1/modules/devices/dev_any", nil))
+	if modRec.Code != http.StatusOK || !strings.Contains(modRec.Body.String(), "viewport-fit=cover") || !strings.Contains(modRec.Body.String(), "standalone-chart") {
+		t.Fatalf("module-view.html missing responsive viewport/chart class: %d", modRec.Code)
+	}
+
+	appCSSRec := httptest.NewRecorder()
+	router.ServeHTTP(appCSSRec, httptest.NewRequest(http.MethodGet, "/css/app.css", nil))
+	appCSS := appCSSRec.Body.String()
+	for _, tok := range []string{"@media (max-width: 1024px)", "@media (max-width: 768px)", "@media (max-width: 480px)", "minmax(min(100%,"} {
+		if !strings.Contains(appCSS, tok) {
+			t.Fatalf("app.css missing responsive rule %q", tok)
+		}
+	}
+
+	sbCSSRec := httptest.NewRecorder()
+	router.ServeHTTP(sbCSSRec, httptest.NewRequest(http.MethodGet, "/css/sidebar-u417.css", nil))
+	if !strings.Contains(sbCSSRec.Body.String(), ".is-mobile-open") || !strings.Contains(sbCSSRec.Body.String(), ".u417-backdrop") {
+		t.Fatal("sidebar-u417.css missing mobile drawer classes")
+	}
+
+	sbJSRec := httptest.NewRecorder()
+	router.ServeHTTP(sbJSRec, httptest.NewRequest(http.MethodGet, "/js/sidebar-u417.js", nil))
+	if !strings.Contains(sbJSRec.Body.String(), "openMobileDrawer") {
+		t.Fatal("sidebar-u417.js missing openMobileDrawer handler")
+	}
+
+	chartsJSRec := httptest.NewRecorder()
+	router.ServeHTTP(chartsJSRec, httptest.NewRequest(http.MethodGet, "/js/charts.js", nil))
+	if !strings.Contains(chartsJSRec.Body.String(), "ontouchmove") {
+		t.Fatal("charts.js missing touch tooltip support")
+	}
+
+	for _, jsPath := range []string{"/js/app.js", "/js/module-view.js"} {
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, jsPath, nil))
+		if !strings.Contains(rec.Body.String(), "orientationchange") {
+			t.Fatalf("%s missing orientationchange responsive reflow handler", jsPath)
+		}
+	}
+}
+
 func TestGUT045_RateLimiterAndRequireAPIKeyMutationGuard(t *testing.T) {
 	store, _ := repository.NewStore("")
 	hub := realtime.NewHub(8)

@@ -3,13 +3,32 @@ window.ERPCharts = (() => {
   function setupCanvas(canvas, customHeight = 240) {
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
-    const w = Math.max(320, rect.width || 880);
-    const h = customHeight || 240;
+    const w = Math.max(220, rect.width || 880);
+    const h = rect.height > 80 ? Math.round(rect.height) : (customHeight || 240);
     canvas.width = w * dpr;
     canvas.height = h * dpr;
     const ctx = canvas.getContext("2d");
     ctx.scale(dpr, dpr);
     return { ctx, w, h };
+  }
+
+  function bindPointerTooltip(canvas, tooltip, onMove) {
+    const extractCoords = (ev) => {
+      const rect = canvas.getBoundingClientRect();
+      const touch = ev.touches && ev.touches[0] ? ev.touches[0] : (ev.changedTouches && ev.changedTouches[0] ? ev.changedTouches[0] : null);
+      const clientX = touch ? touch.clientX : ev.clientX;
+      const clientY = touch ? touch.clientY : ev.clientY;
+      return { rect, mx: clientX - rect.left, my: clientY - rect.top };
+    };
+    const handle = (ev) => {
+      if (!tooltip) return;
+      onMove(extractCoords(ev));
+    };
+    canvas.onmousemove = handle;
+    canvas.ontouchstart = handle;
+    canvas.ontouchmove = handle;
+    canvas.onmouseleave = () => { if (tooltip) tooltip.style.display = "none"; };
+    canvas.ontouchend = () => { if (tooltip) tooltip.style.display = "none"; };
   }
 
   function renderForecastChart(canvas, tooltip, steps) {
@@ -77,10 +96,7 @@ window.ERPCharts = (() => {
     ctx.fillStyle = "#38bdf8";
     ctx.fillText("Precipitation (mm)", padL + 190, 16);
 
-    canvas.onmousemove = (ev) => {
-      if (!tooltip) return;
-      const rect = canvas.getBoundingClientRect();
-      const mx = ev.clientX - rect.left;
+    bindPointerTooltip(canvas, tooltip, ({ rect, mx }) => {
       let best = coords[0], bestDist = Infinity;
       coords.forEach((p) => {
         const d = Math.abs(p.x - mx);
@@ -94,10 +110,9 @@ window.ERPCharts = (() => {
         Rain: <b>${Number(st.precipitation_1h ?? st.precipitation_6h ?? 0).toFixed(1)} mm</b> · RH: ${st.humidity ?? "-"}%
       `;
       tooltip.style.display = "block";
-      tooltip.style.left = `${Math.min(rect.width - 190, Math.max(8, best.x + 10))}px`;
+      tooltip.style.left = `${Math.min(Math.max(8, rect.width - 190), Math.max(8, best.x + 10))}px`;
       tooltip.style.top = `${Math.max(8, best.y - 45)}px`;
-    };
-    canvas.onmouseleave = () => { if (tooltip) tooltip.style.display = "none"; };
+    });
   }
 
   function renderExchangeChart(canvas, tooltip, rows) {
@@ -338,12 +353,13 @@ window.ERPCharts = (() => {
     const denom = Math.max(1, maxLen - 1);
     const xOf = (idx) => padL + (maxLen === 1 ? cw / 2 : (idx / denom) * cw);
 
-    const stepX = Math.max(1, Math.ceil(refLabels.length / 6));
+    const maxTicks = w < 420 ? 3 : 6;
+    const stepX = Math.max(1, Math.ceil(refLabels.length / maxTicks));
     refLabels.forEach((lbl, idx) => {
       if (idx % stepX === 0 || idx === refLabels.length - 1) {
         ctx.fillStyle = "#94a3b8";
         ctx.font = "10px system-ui";
-        ctx.fillText(String(lbl).slice(-8), Math.max(padL, xOf(idx) - 22), h - 8);
+        ctx.fillText(String(lbl).slice(-8), Math.min(w - 48, Math.max(padL, xOf(idx) - 22)), h - 8);
       }
     });
 
@@ -445,11 +461,8 @@ window.ERPCharts = (() => {
       lx += Math.min(180, txt.length * 6.5 + 26);
     });
 
-    canvas.onmousemove = (ev) => {
-      if (!tooltip || !columns.length) return;
-      const rect = canvas.getBoundingClientRect();
-      const mx = ev.clientX - rect.left;
-      const my = ev.clientY - rect.top;
+    if (!columns.length) return;
+    bindPointerTooltip(canvas, tooltip, ({ rect, mx, my }) => {
       let nearest = columns[0];
       let bestDist = Infinity;
       columns.forEach((col) => {
@@ -465,12 +478,9 @@ window.ERPCharts = (() => {
           `<div style="display:flex;justify-content:space-between;gap:12px;"><span style="color:${it.color}">● ${it.label}</span><b class="tabular-nums">${it.val.toFixed(2)} ${it.unit}</b></div>`
         ).join("");
       tooltip.style.display = "block";
-      tooltip.style.left = `${Math.min(rect.width - 210, Math.max(8, mx + 12))}px`;
+      tooltip.style.left = `${Math.min(Math.max(8, rect.width - 205), Math.max(8, mx + 12))}px`;
       tooltip.style.top = `${Math.max(8, my - 40)}px`;
-    };
-    canvas.onmouseleave = () => {
-      if (tooltip) tooltip.style.display = "none";
-    };
+    });
   }
 
   function renderComponentChartsGrid(containerEl, specs = []) {

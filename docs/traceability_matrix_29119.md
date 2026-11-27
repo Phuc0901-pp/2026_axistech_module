@@ -130,3 +130,4 @@
 | REQ-SEC-18: Standalone Token Isolation & Admin Routes | TBSG-ISO-T4 | G-UT-055 | Reject forged `fcp_` tokens (`400`) while keeping admin `/tbsgagtech/v1/*` intact |
 | REQ-UI-11: Vietnamese Metric & Tooltip Standardization | TBSG-ISO-T5 | G-UT-056 | Standardize all device & point-forecast labels + tooltips (`getMetricMeta`) across ISO module & ERP UI |
 | REQ-UI-12: Collapsible Spring-Rail Sidebar (#417) | ERP-UX-T1 | G-UT-057 | Verify scoped `.u417` sidebar rail collapse, spring pill indicator, light/dark tokens, keyboard & reduced-motion support |
+| REQ-UI-13: Mobile & Tablet Auto-Scale Responsive UI | ERP-UX-T2 | G-UT-058 | Verify `viewport-fit=cover`, 1024/768/480 breakpoints, off-canvas mobile drawer, touch chart tooltips & orientation reflow |

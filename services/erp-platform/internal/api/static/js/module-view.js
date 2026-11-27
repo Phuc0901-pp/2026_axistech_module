@@ -352,6 +352,19 @@
   };
   setInterval(() => refreshModule(), AUTO_POLL_MS);
 
+  let resizeTimer = null;
+  const handleResponsiveReflow = () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      standaloneMap.invalidateSize();
+      if (!state.data) return;
+      if (state.mode === "devices") renderDeviceView(state.data);
+      else renderForecastView(state.data);
+    }, 180);
+  };
+  window.addEventListener("resize", handleResponsiveReflow);
+  window.addEventListener("orientationchange", handleResponsiveReflow);
+
   window.ERPIcons.refresh();
   refreshModule();
 })();
