@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import os
 from typing import Literal
-from urllib.parse import urlparse
+from urllib.parse import quote_plus, urlparse
 
 from pydantic import AliasChoices, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -130,6 +131,22 @@ class BridgeSettings(BaseSettings):
                 )
 
         return self
+
+    def resolved_database_url(self) -> str:
+        explicit = self.database_url.get_secret_value().strip()
+        if explicit:
+            return explicit
+        pg_host = os.getenv("POSTGRES_HOST", "").strip()
+        pg_pass = os.getenv("POSTGRES_PASSWORD", "")
+        if pg_host and pg_pass:
+            pg_port = os.getenv("POSTGRES_PORT", "5432").strip() or "5432"
+            pg_user = os.getenv("POSTGRES_USER", "agtech_admin").strip() or "agtech_admin"
+            pg_db = os.getenv("POSTGRES_DB", "TbsgAgtech_db").strip() or "TbsgAgtech_db"
+            return (
+                f"postgresql://{quote_plus(pg_user)}:{quote_plus(pg_pass)}"
+                f"@{pg_host}:{pg_port}/{quote_plus(pg_db)}"
+            )
+        return ""
 
     def __repr__(self) -> str:
         return (

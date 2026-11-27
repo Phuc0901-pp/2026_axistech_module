@@ -70,4 +70,21 @@ func TestGUT059_ConfigDatabaseURLAndSecretMasking(t *testing.T) {
 	if _, err := LoadFromEnv(); err == nil {
 		t.Fatal("expected error for non-postgres DatabaseURL")
 	}
+
+	t.Setenv("ERP_DATABASE_URL", "")
+	t.Setenv("POSTGRES_HOST", "postgres")
+	t.Setenv("POSTGRES_PORT", "5432")
+	t.Setenv("POSTGRES_DB", "TbsgAgtech_db")
+	t.Setenv("POSTGRES_USER", "agtech_admin")
+	t.Setenv("POSTGRES_PASSWORD", "Test@Pass123")
+	pgCfg, err := LoadFromEnv()
+	if err != nil {
+		t.Fatalf("expected percent-encoded postgres DSN, got err: %v", err)
+	}
+	if !strings.Contains(pgCfg.DatabaseURL, "Test%40Pass123@postgres:5432/TbsgAgtech_db") {
+		t.Fatalf("expected percent-encoded password in DSN, got: %s", pgCfg.DatabaseURL)
+	}
+	if strings.Contains(pgCfg.String(), "Test@Pass123") || strings.Contains(pgCfg.String(), "Test%40Pass123") {
+		t.Fatalf("Config.String() leaked assembled Postgres password: %s", pgCfg.String())
+	}
 }

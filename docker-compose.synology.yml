@@ -7,7 +7,7 @@ services:
     env_file:
       - ./.env.prod
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-axistech_erp}
+      POSTGRES_DB: ${POSTGRES_DB:-TbsgAgtech_db}
       POSTGRES_USER: ${POSTGRES_USER:-agtech_admin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-CHANGE_ME_POSTGRES_PASSWORD}
     volumes:
@@ -16,7 +16,7 @@ services:
     networks:
       - agtech_internal
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agtech_admin} -d ${POSTGRES_DB:-axistech_erp}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agtech_admin} -d ${POSTGRES_DB:-TbsgAgtech_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -34,7 +34,10 @@ services:
       - ./.env.prod
     environment:
       AXISSTREAM_SQLITE_PATH: /data/bridge_state.db
-      AXISSTREAM_DATABASE_URL: postgresql://${POSTGRES_USER:-agtech_admin}:${POSTGRES_PASSWORD:-CHANGE_ME_POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-axistech_erp}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB:-TbsgAgtech_db}
+      POSTGRES_USER: ${POSTGRES_USER:-agtech_admin}
     volumes:
       - synology_bridge_data:/data
     networks:
@@ -62,7 +65,10 @@ services:
       ERP_PORT: 8080
       BRIDGE_BASE_URL: http://axisstream-bridge:8001
       ERP_DATA_FILE_PATH: /data/erp_state.json
-      ERP_DATABASE_URL: postgresql://${POSTGRES_USER:-agtech_admin}:${POSTGRES_PASSWORD:-CHANGE_ME_POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-axistech_erp}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB:-TbsgAgtech_db}
+      POSTGRES_USER: ${POSTGRES_USER:-agtech_admin}
       ERP_REQUIRE_API_KEY: ${ERP_REQUIRE_API_KEY:-true}
     ports:
       # Loopback-only for Synology DSM Control Panel -> Login Portal -> Reverse Proxy

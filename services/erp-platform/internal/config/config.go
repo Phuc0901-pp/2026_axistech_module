@@ -83,6 +83,28 @@ func LoadFromEnv() (Config, error) {
 		cfg.DatabaseURL = v
 	} else if v := strings.TrimSpace(os.Getenv("DATABASE_URL")); v != "" {
 		cfg.DatabaseURL = v
+	} else if pgHost := strings.TrimSpace(os.Getenv("POSTGRES_HOST")); pgHost != "" {
+		if pgPass := os.Getenv("POSTGRES_PASSWORD"); pgPass != "" {
+			pgPort := strings.TrimSpace(os.Getenv("POSTGRES_PORT"))
+			if pgPort == "" {
+				pgPort = "5432"
+			}
+			pgUser := strings.TrimSpace(os.Getenv("POSTGRES_USER"))
+			if pgUser == "" {
+				pgUser = "agtech_admin"
+			}
+			pgDB := strings.TrimSpace(os.Getenv("POSTGRES_DB"))
+			if pgDB == "" {
+				pgDB = "TbsgAgtech_db"
+			}
+			u := &url.URL{
+				Scheme: "postgresql",
+				User:   url.UserPassword(pgUser, pgPass),
+				Host:   pgHost + ":" + pgPort,
+				Path:   "/" + pgDB,
+			}
+			cfg.DatabaseURL = u.String()
+		}
 	}
 	if v := strings.TrimSpace(os.Getenv("LOG_LEVEL")); v != "" {
 		cfg.LogLevel = strings.ToUpper(v)

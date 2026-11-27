@@ -162,10 +162,20 @@ def test_ut_072_iso_postgres_migrations_complete() -> None:
 
 
 def test_ut_073_postgres_state_store_contracts_and_aead(monkeypatch) -> None:
-    monkeypatch.setenv("AXISSTREAM_DATABASE_URL", "postgresql://agtech:secret@postgres:5432/axistech_erp")
+    monkeypatch.setenv("POSTGRES_HOST", "postgres")
+    monkeypatch.setenv("POSTGRES_PORT", "5432")
+    monkeypatch.setenv("POSTGRES_DB", "TbsgAgtech_db")
+    monkeypatch.setenv("POSTGRES_USER", "agtech_admin")
+    monkeypatch.setenv("POSTGRES_PASSWORD", "Test@Pass123")
     cfg = BridgeSettings(mode="demo")
-    assert cfg.database_url.get_secret_value().startswith("postgresql://")
-    assert "secret" not in str(cfg.database_url)
+    assembled = cfg.resolved_database_url()
+    assert assembled == "postgresql://agtech_admin:Test%40Pass123@postgres:5432/TbsgAgtech_db"
+    assert "Test@Pass123" not in repr(cfg)
+
+    monkeypatch.setenv("AXISSTREAM_DATABASE_URL", "postgresql://agtech:secret@postgres:5432/TbsgAgtech_db")
+    cfg2 = BridgeSettings(mode="demo")
+    assert cfg2.resolved_database_url().startswith("postgresql://")
+    assert "secret" not in str(cfg2.database_url)
 
     pool = _FakePool()
     store = PostgresStateStore(

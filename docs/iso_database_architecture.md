@@ -33,7 +33,7 @@ flowchart LR
 ## 4. Hướng dẫn Nâng cấp từ Bản cũ trên Synology Container Manager
 1. Thêm biến môi trường Postgres vào `.env.prod` trên NAS:
    ```env
-   POSTGRES_DB=axistech_erp
+   POSTGRES_DB=TbsgAgtech_db
    POSTGRES_USER=agtech_admin
    POSTGRES_PASSWORD=MAT_KHAU_MANH_CUA_BAN
    ```
@@ -41,5 +41,5 @@ flowchart LR
 3. Lần đầu khởi động, `axistech_postgres` sẽ tự chạy toàn bộ file `001..004_*.sql` trong `/docker-entrypoint-initdb.d`.
 4. Sao lưu định kỳ bằng lệnh:
    ```bash
-   docker exec axistech_postgres pg_dump -U agtech_admin -Fc axistech_erp > backup_$(date +%F).dump
+   docker exec axistech_postgres pg_dump -U agtech_admin -Fc TbsgAgtech_db > backup_$(date +%F).dump
    ```

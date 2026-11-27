@@ -65,7 +65,7 @@ def create_app(
     cfg = settings or BridgeSettings()
     configure_logging(cfg.log_level)
 
-    db_url = cfg.database_url.get_secret_value().strip() if hasattr(cfg, "database_url") else ""
+    db_url = cfg.resolved_database_url() if hasattr(cfg, "resolved_database_url") else cfg.database_url.get_secret_value().strip()
     if state_store is not None:
         store = state_store
     elif db_url.startswith(("postgres://", "postgresql://")):

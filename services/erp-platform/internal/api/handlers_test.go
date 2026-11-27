@@ -882,8 +882,8 @@ func TestGUT060_PostgresComposeIsolationAndMigrationContract(t *testing.T) {
 			t.Fatalf("missing %s: %v", composeName, err)
 		}
 		txt := string(raw)
-		if !strings.Contains(txt, "postgres:16-alpine") || !strings.Contains(txt, "ERP_DATABASE_URL:") {
-			t.Fatalf("%s missing postgres:16-alpine or ERP_DATABASE_URL wiring", composeName)
+		if !strings.Contains(txt, "postgres:16-alpine") || !strings.Contains(txt, "POSTGRES_HOST:") {
+			t.Fatalf("%s missing postgres:16-alpine or POSTGRES_HOST wiring", composeName)
 		}
 		if strings.Contains(txt, "5432:5432") {
 			t.Fatalf("%s must NOT expose Postgres port 5432 on host network", composeName)
