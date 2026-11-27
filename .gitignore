@@ -1,0 +1,21 @@
+# Local runtime account credentials (ISO 27001 - NEVER commit)
+init.js
+.env
+.env.local
+
+# Runtime persisted state & databases
+data/
+*.db
+*.sqlite3
+
+# Build caches, virtualenvs & compiled binaries
+.gocache/
+.gopath/
+.venv/
+__pycache__/
+.pytest_cache/
+.coverage
+*.pyc
+*.log
+services/erp-platform/erp-server.exe
+services/erp-platform/*.exe

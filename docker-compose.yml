@@ -1,0 +1,39 @@
+services:
+  axisstream-bridge:
+    build:
+      context: ./services/axisstream-bridge
+    environment:
+      AXISSTREAM_MODE: ${AXISSTREAM_MODE:-demo}
+      AXISSTREAM_INBOUND_API_KEY: ${AXISSTREAM_INBOUND_API_KEY:-dev-bridge-api-key-change-me}
+      AXISSTREAM_SYNC_INTERVAL_SEC: ${AXISSTREAM_SYNC_INTERVAL_SEC:-15}
+      AXISSTREAM_SQLITE_PATH: /data/bridge_state.db
+    ports:
+      - "8001:8001"
+    volumes:
+      - bridge_data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health/ready')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  erp-platform:
+    build:
+      context: ./services/erp-platform
+    depends_on:
+      axisstream-bridge:
+        condition: service_healthy
+    environment:
+      ERP_PORT: 8080
+      BRIDGE_BASE_URL: http://axisstream-bridge:8001
+      BRIDGE_API_KEY: ${AXISSTREAM_INBOUND_API_KEY:-dev-bridge-api-key-change-me}
+      SYNC_INTERVAL_SEC: ${SYNC_INTERVAL_SEC:-10}
+      ERP_DATA_FILE_PATH: /data/erp_state.json
+    ports:
+      - "8080:8080"
+    volumes:
+      - erp_data:/data
+
+volumes:
+  bridge_data:
+  erp_data:

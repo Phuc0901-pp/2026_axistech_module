@@ -1,0 +1,13 @@
+# ISO/IEC 27001:2022 Information Security & Encryption Controls
+
+> Chi tiết kiến trúc mật mã và xử lý vận hành xem tại [03_SECURITY_AND_ENCRYPTION.md](brain/03_SECURITY_AND_ENCRYPTION.md) và [06_OPERATIONS_RUNBOOK_AND_DECISIONS.md](brain/06_OPERATIONS_RUNBOOK_AND_DECISIONS.md).
+
+| Control Objective | Implementation in `axisstream-bridge` & `erp-platform` | Verified By |
+|---|---|---|
+| **A.8.24 / Cryptographic Controls (At Rest)** | Python `FieldEncryptor` (`HKDF-SHA256-CTR-HMAC-SHA256`, `ENC:v1:` prefix) encrypts SQLite `outbox_events` payloads. Go `AESCipher` (`AES-256-GCM`) encrypts persisted `erp_state.json` via atomic envelopes with random 96-bit nonces and tamper rejection. | `UT-063`, `UT-064`, `G-UT-038`, `G-UT-040` |
+| **A.8.24 / Secrets Management** | Zero hardcoded credentials in source code, tests, fixtures, templates (`init.example.js`), or Markdown docs (`BRAIN.md`, `docs/brain/*.md`). Local `init.js` is `.gitignore`d and blocked from `static/` HTTP serving (`404`). Pydantic `SecretStr` + Go `Config.String()` masking + launcher env cleanup on exit. | `UT-002`, `UT-050`, `UT-069`, `G-UT-003`, `G-UT-034` |
+| **A.8.15 / Tamper-Evident Audit Chain** | Go ERP appends chronological `AuditEntry` records chained by `SHA-256(prev_hash + fields -> entry_hash)` across every sync and incident action; `VerifyAuditChain()` detects any historical tampering on `/api/erp/v1/security/status` and `#tab-audit`. | `G-UT-013`, `G-UT-014`, `G-UT-024`, `G-UT-039`, `G-UT-040` |
+| **A.8.15 / Redacted Structured Logging** | JSON logs in Python (`JsonFormatter`) and Go (`log/slog` `ReplaceAttr`) recursively redact `password`, `token`, `cookie`, `authorization`, `api_key`, `encryption_key`. | `UT-003`, `UT-020`, `G-UT-005` |
+| **A.8.20 / Network & Transport Security** | Strict `https://` enforcement, `verify=True` TLS verification, `.axisstream.co` host-suffix whitelist, redirect host validation, and SSRF path-segment validation. | `UT-001`, `UT-018`, `UT-051` |
+| **A.8.5 / Auth, Rate Limit & Integrity** | Single-flight cookie re-auth (`CookieSessionAuthenticator`), AxisStream Exchange token check, constant-time `X-API-Key` validation (Bridge `/api/v1/*` and optional Go mutation guard `ERP_REQUIRE_API_KEY`), per-IP sliding-window rate limiter (`429`), HMAC-SHA256 webhooks (`X-Signature-256`). | `UT-016`, `UT-042`, `UT-046`, `UT-068`, `G-UT-006`, `G-UT-043` |
+| **A.8.26 / HTTP Security Headers & CSP** | Enforces `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Strict-Transport-Security`, `Permissions-Policy`, strict `script-src 'self'` CSP with `mt0..mt3.google.com` tiles, and RFC 9457 error responses without stack traces. | `UT-045`, `UT-066`, `G-UT-025`, `G-UT-026`, `G-UT-033` |
