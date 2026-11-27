@@ -476,3 +476,16 @@ canvas.erp-canvas-sm { height: 195px; }
 }
 body.embed-mode .sidebar, body.embed-mode .topbar { display: none !important; }
 body.embed-mode .main-area { padding: 12px; }
+
+/* Standalone Isolated ISO Page (module-view.html) */
+.standalone-shell {
+  max-width: 1420px; margin: 0 auto; padding: 18px 20px;
+  display: flex; flex-direction: column; gap: 16px; min-height: 100vh;
+}
+.standalone-header {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px 16px;
+}
+.standalone-title-wrap {
+  display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;
+}

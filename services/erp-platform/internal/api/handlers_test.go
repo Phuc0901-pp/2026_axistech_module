@@ -569,14 +569,22 @@ func TestGUT051_TbsgAgTechISODeepLinkSPARouting(t *testing.T) {
 	router, _ := setupTestRouter(t)
 	for _, path := range []string{
 		"/tbsgagtech/v1/overview",
-		"/tbsgagtech/v1/modules/devices/dev_demo",
-		"/tbsgagtech/v1/modules/forecast/fcp_demo",
 		"/tbsgagtech/v1/compliance/audit",
 	} {
 		rec := httptest.NewRecorder()
 		router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
 		if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `id="tab-api-module"`) {
-			t.Fatalf("expected SPA HTML 200 for deep-link %s, got %d", path, rec.Code)
+			t.Fatalf("expected full ERP SPA HTML 200 for deep-link %s, got %d", path, rec.Code)
+		}
+	}
+	for _, path := range []string{
+		"/tbsgagtech/v1/modules/devices/dev_demo",
+		"/tbsgagtech/v1/modules/forecast/fcp_demo",
+	} {
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+		if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `id="standaloneMap"`) {
+			t.Fatalf("expected isolated module-view HTML 200 for %s, got %d", path, rec.Code)
 		}
 	}
 
@@ -587,6 +595,92 @@ func TestGUT051_TbsgAgTechISODeepLinkSPARouting(t *testing.T) {
 		if !strings.Contains(appJs, sym) {
 			t.Fatalf("app.js missing tbsgagtech ISO SPA route symbol %q", sym)
 		}
+	}
+}
+
+func TestGUT052_StandaloneISOPageStripsAllERPChrome(t *testing.T) {
+	router, _ := setupTestRouter(t)
+	for _, path := range []string{
+		"/tbsgagtech/v1/modules/devices/dev_sample_token",
+		"/tbsgagtech/v1/modules/forecast/fcp_sample_token",
+	} {
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200 for standalone module page %s, got %d", path, rec.Code)
+		}
+		html := rec.Body.String()
+		for _, forbidden := range []string{`class="sidebar"`, `id="projectSelect"`, `id="quickSearchBtn"`, `Security &amp; Audit Trail`, `id="apiModuleDeviceSelect"`} {
+			if strings.Contains(html, forbidden) {
+				t.Fatalf("standalone page %s must strip ERP chrome element %s", path, forbidden)
+			}
+		}
+		for _, required := range []string{`id="standaloneMap"`, `id="standaloneTableBody"`, `id="standaloneChartCanvas"`, `id="standaloneLiveBadge"`, `/js/module-view.js`} {
+			if !strings.Contains(html, required) {
+				t.Fatalf("standalone page %s missing core module element %s", path, required)
+			}
+		}
+	}
+}
+
+func TestGUT053_StandaloneModuleJSLeastPrivilegeAndAutoSync(t *testing.T) {
+	router, _ := setupTestRouter(t)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/js/module-view.js", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("failed loading /js/module-view.js: %d", rec.Code)
+	}
+	js := rec.Body.String()
+	for _, required := range []string{`/api/tbsgagtech/v1/modules/`, `EventSource("/api/erp/v1/events")`, `setInterval`, `PAGE_SIZE = 10`, `sync_update`} {
+		if !strings.Contains(js, required) {
+			t.Fatalf("module-view.js missing required isolated auto-sync contract %q", required)
+		}
+	}
+	for _, forbidden := range []string{`/api/erp/v1/projects`, `/api/erp/v1/audit`, `/api/erp/v1/dashboard`, `/api/erp/v1/incidents`} {
+		if strings.Contains(js, forbidden) {
+			t.Fatalf("module-view.js violates least privilege by referencing %q", forbidden)
+		}
+	}
+}
+
+func TestGUT054_PortableDeviceModuleAvailableMetricsAndFilter(t *testing.T) {
+	router, _ := setupTestRouter(t)
+	catRec := httptest.NewRecorder()
+	router.ServeHTTP(catRec, httptest.NewRequest(http.MethodGet, "/api/tbsgagtech/v1/modules/catalog", nil))
+	var cat struct {
+		Devices []struct {
+			APIURL string `json:"api_url"`
+		} `json:"devices"`
+	}
+	if err := json.Unmarshal(catRec.Body.Bytes(), &cat); err != nil || len(cat.Devices) == 0 {
+		t.Fatalf("catalog missing devices: %s", catRec.Body.String())
+	}
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, cat.Devices[0].APIURL+"?metric=temperature&page=1&page_size=10", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("device module query failed: %d %s", rec.Code, rec.Body.String())
+	}
+	body := rec.Body.String()
+	for _, tok := range []string{`"available_metrics":["temperature"]`, `"power_state"`, `"geolocation"`, `"page_size":10`, `"metric":"temperature"`} {
+		if !strings.Contains(body, tok) {
+			t.Fatalf("device module response missing %s: %s", tok, body)
+		}
+	}
+}
+
+func TestGUT055_StandaloneIsolationAndAdminRoutesIntact(t *testing.T) {
+	router, _ := setupTestRouter(t)
+	badRec := httptest.NewRecorder()
+	router.ServeHTTP(badRec, httptest.NewRequest(http.MethodGet, "/api/tbsgagtech/v1/modules/forecast/fcp_corrupted_sig", nil))
+	if badRec.Code != http.StatusBadRequest || !strings.Contains(badRec.Body.String(), "INVALID_RESOURCE_TOKEN") {
+		t.Fatalf("expected 400 INVALID_RESOURCE_TOKEN on forged forecast token, got %d %s", badRec.Code, badRec.Body.String())
+	}
+
+	adminRec := httptest.NewRecorder()
+	router.ServeHTTP(adminRec, httptest.NewRequest(http.MethodGet, "/tbsgagtech/v1/compliance/audit", nil))
+	if adminRec.Code != http.StatusOK || !strings.Contains(adminRec.Body.String(), `id="auditBody"`) {
+		t.Fatalf("admin audit route broken: %d", adminRec.Code)
 	}
 }
 

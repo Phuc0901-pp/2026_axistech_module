@@ -123,4 +123,8 @@
 | REQ-API-08: Forecast & Device Coords API | ERP-API-T3 | G-UT-048 | Verify `/api/erp/v1/forecast` & `/devices` serve live target coordinates for map pin |
 | REQ-SEC-16: AES-256-GCM Opaque Module Tokens | TBSG-API-T1 | G-UT-049 | Encode/decode deterministic `dev_...`/`fcp_...` tokens; reject wrong-key & tampering |
 | REQ-API-09: Portable `tbsgagtech` Module REST APIs | TBSG-API-T2 | G-UT-050 | Serve `/api/tbsgagtech/v1/modules/{catalog,devices/,forecast/}` & RFC 9457 400 bad token |
-| REQ-UI-09: ISO Deep-Link SPA Routing (`/tbsgagtech/v1/*`) | TBSG-API-T3 | G-UT-051 | Serve SPA HTML on `/tbsgagtech/v1/*` routes & sync `history.pushState` / `?embed=1` |
+| REQ-UI-09: ISO Deep-Link SPA Routing (`/tbsgagtech/v1/*`) | TBSG-API-T3 | G-UT-051 | Serve full ERP SPA on `/tbsgagtech/v1/overview` & isolated module on `/modules/...` |
+| REQ-UI-10: Standalone ISO Page Strips ERP Chrome | TBSG-ISO-T1 | G-UT-052 | Serve `module-view.html` without sidebar, topbar, project switcher, or audit tabs |
+| REQ-SEC-17: Isolated Client Least-Privilege & AutoSync | TBSG-ISO-T2 | G-UT-053 | Verify `module-view.js` only calls `/modules/`, listens to SSE `sync_update` + 15s poll |
+| REQ-API-10: Device Module `available_metrics` & Filter | TBSG-ISO-T3 | G-UT-054 | Return `available_metrics`, `power_state`, GPS, `page_size=10` & single-metric chart |
+| REQ-SEC-18: Standalone Token Isolation & Admin Routes | TBSG-ISO-T4 | G-UT-055 | Reject forged `fcp_` tokens (`400`) while keeping admin `/tbsgagtech/v1/*` intact |

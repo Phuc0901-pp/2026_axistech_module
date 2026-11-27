@@ -46,7 +46,21 @@ func NewRouterWithOptions(h *Handler, log *slog.Logger, opts RouterSecurityOptio
 	mux.HandleFunc("GET /api/tbsgagtech/v1/modules/devices/", h.GetDeviceModule)
 	mux.HandleFunc("GET /api/tbsgagtech/v1/modules/forecast/", h.GetForecastModule)
 
-	// Deep-link ISO SPA routes (/tbsgagtech/v1/*)
+	// Dedicated Isolated Standalone Module Pages (strip all ERP chrome)
+	serveModuleView := func(w http.ResponseWriter, _ *http.Request) {
+		raw, err := fs.ReadFile(staticFiles, "static/module-view.html")
+		if err != nil {
+			http.NotFound(w, nil)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(raw)
+	}
+	mux.HandleFunc("GET /tbsgagtech/v1/modules/devices/", serveModuleView)
+	mux.HandleFunc("GET /tbsgagtech/v1/modules/forecast/", serveModuleView)
+
+	// Deep-link ISO SPA routes (/tbsgagtech/v1/* admin ERP workspace)
 	mux.HandleFunc("GET /tbsgagtech/", func(w http.ResponseWriter, r *http.Request) {
 		raw, err := fs.ReadFile(staticFiles, "static/index.html")
 		if err != nil {

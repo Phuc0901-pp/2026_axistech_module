@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AxisTech Isolated Module View — tbsgagtech</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="stylesheet" href="/vendor/leaflet.min.css" />
+  <link rel="stylesheet" href="/css/tokens.css" />
+  <link rel="stylesheet" href="/css/app.css" />
+</head>
+<body>
+  <div class="standalone-shell">
+    <header class="standalone-header">
+      <div class="standalone-title-wrap">
+        <div id="standaloneIcon" class="icon-avatar" style="width:46px;height:46px;">
+          <i data-lucide="cpu"></i>
+        </div>
+        <div style="min-width:0;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <strong id="standaloneTitle" style="font-size:1.08rem;">Loading Module...</strong>
+            <span id="standaloneStatusSlot"></span>
+          </div>
+          <div id="standaloneSubtitle" class="mono" style="color:var(--muted);margin-top:2px;">Waiting for authenticated telemetry...</div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <span id="standaloneLiveBadge" class="status-pill live">
+          <i data-lucide="radio"></i><span>LIVE AUTO-SYNC</span>
+        </span>
+        <span id="standaloneUpdatedAt" class="badge badge-info tabular-nums">--:--:-- UTC</span>
+        <button id="standaloneThemeBtn" type="button" class="btn btn-ghost btn-sm" title="Toggle Theme">
+          <i data-lucide="sun-moon"></i><span>Theme</span>
+        </button>
+      </div>
+    </header>
+
+    <div id="standaloneError" class="error-banner" style="display:none;"></div>
+
+    <div class="card">
+      <div id="standaloneMetricPills" class="metric-pills"></div>
+    </div>
+
+    <div class="card">
+      <div class="map-toolbar">
+        <h3 style="font-size:0.95rem;display:flex;align-items:center;gap:7px;">
+          <i data-lucide="map-pin" style="width:16px;height:16px;color:var(--accent)"></i>
+          <span id="standaloneMapTitle">Geolocation</span>
+        </h3>
+        <div class="map-btn-group" data-map-target="standalone">
+          <button class="map-chip active" data-layer="satellite">Satellite</button>
+          <button class="map-chip" data-layer="hybrid">Hybrid</button>
+          <button class="map-chip" data-layer="terrain">Terrain</button>
+          <button class="map-chip" data-layer="roadmap">Roadmap</button>
+          <button class="map-chip" data-fit="1"><i data-lucide="maximize-2"></i>Fit</button>
+        </div>
+      </div>
+      <div id="standaloneMap" class="map-canvas" style="height:320px;"></div>
+      <div class="map-footer">
+        <span id="standaloneCoords" class="mono">GPS: Hover satellite map</span>
+        <span id="standaloneGeoSummary" class="mono">WGS84 Verified</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3 id="standaloneMetricTitle"><i data-lucide="table"></i><span>1 Data + 1 Graph — Single-Scale Telemetry</span></h3>
+        <div id="standaloneMetricStats" class="component-chart-stats tabular-nums"></div>
+      </div>
+      <div class="api-module-pair-grid">
+        <div>
+          <div class="table-wrap">
+            <table class="data-table compact tabular-nums">
+              <thead id="standaloneTableHead"></thead>
+              <tbody id="standaloneTableBody"></tbody>
+            </table>
+          </div>
+          <div id="standalonePagination" class="table-pagination"></div>
+        </div>
+        <div class="component-chart-card">
+          <div class="component-chart-head">
+            <strong id="standaloneChartHeader" style="font-size:0.88rem;">Real-Time Single-Metric Graph</strong>
+            <span id="standaloneChartBadge" class="badge badge-info tabular-nums">-</span>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="standaloneChartCanvas" class="erp-canvas" style="height:290px;"></canvas>
+            <div id="standaloneChartTooltip" class="chart-tooltip"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/vendor/leaflet.min.js"></script>
+  <script src="/vendor/lucide.min.js"></script>
+  <script src="/js/icons.js"></script>
+  <script src="/js/map-engine.js"></script>
+  <script src="/js/charts.js"></script>
+  <script src="/js/module-view.js"></script>
+</body>
+</html>

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -472,8 +473,23 @@ func (h *Handler) GetDeviceModule(w http.ResponseWriter, r *http.Request) {
 		history = snap.Readings
 	}
 
+	metricSet := make(map[string]struct{})
+	for _, rd := range history {
+		if rd.Metric != "" {
+			metricSet[rd.Metric] = struct{}{}
+		}
+	}
+	availableMetrics := make([]string, 0, len(metricSet))
+	for m := range metricSet {
+		availableMetrics = append(availableMetrics, m)
+	}
+	sort.Strings(availableMetrics)
+
 	filtered := make([]domain.TelemetryReading, 0, len(history))
 	selectedMetric := requestedMetric
+	if selectedMetric == "" && len(availableMetrics) > 0 {
+		selectedMetric = availableMetrics[0]
+	}
 	unit := ""
 	for _, rd := range history {
 		if selectedMetric == "" && rd.Metric != "" {
@@ -509,16 +525,24 @@ func (h *Handler) GetDeviceModule(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var devMeta *domain.DeviceMetadata
+	if snap != nil {
+		mCopy := snap.Metadata
+		devMeta = &mCopy
+	}
+
 	writeJSON(w, http.StatusOK, map[string]any{
-		"namespace":   "tbsgagtech",
-		"token":       token,
-		"ui_url":      "/tbsgagtech/v1/modules/devices/" + token,
-		"embed_url":   "/tbsgagtech/v1/modules/devices/" + token + "?embed=1",
-		"device":      dev,
-		"power_state": map[string]string{"status": powerLabel, "reason": powerReason},
-		"geolocation": map[string]any{"coordinates": dev.Coordinates, "fields": h.store.GetFields(projectID)},
-		"table":       map[string]any{"page": page, "page_size": pageSize, "total": total, "rows": filtered[start:end]},
-		"chart":       map[string]any{"metric": selectedMetric, "unit": unit, "points": pts},
+		"namespace":         "tbsgagtech",
+		"token":             token,
+		"ui_url":            "/tbsgagtech/v1/modules/devices/" + token,
+		"embed_url":         "/tbsgagtech/v1/modules/devices/" + token + "?embed=1",
+		"device":            dev,
+		"metadata":          devMeta,
+		"power_state":       map[string]string{"status": powerLabel, "reason": powerReason},
+		"available_metrics": availableMetrics,
+		"geolocation":       map[string]any{"coordinates": dev.Coordinates, "fields": h.store.GetFields(projectID)},
+		"table":             map[string]any{"page": page, "page_size": pageSize, "total": total, "rows": filtered[start:end]},
+		"chart":             map[string]any{"metric": selectedMetric, "unit": unit, "points": pts},
 	})
 }
 
@@ -637,11 +661,22 @@ func (h *Handler) GetForecastModule(w http.ResponseWriter, r *http.Request) {
 		elev = bundle.MetNorway.Location.Elevation
 	}
 
+	var currentStep *domain.ForecastStep
+	if len(steps) > 0 {
+		idx := bundle.MetNorway.CurrentStepIndex
+		if idx < 0 || idx >= len(steps) {
+			idx = 0
+		}
+		cCopy := steps[idx]
+		currentStep = &cCopy
+	}
+
 	writeJSON(w, http.StatusOK, map[string]any{
 		"namespace": "tbsgagtech",
 		"token":     token,
 		"ui_url":    "/tbsgagtech/v1/modules/forecast/" + token,
 		"embed_url": "/tbsgagtech/v1/modules/forecast/" + token + "?embed=1",
+		"current":   currentStep,
 		"location": map[string]any{
 			"name":      locName,
 			"latitude":  lat,
