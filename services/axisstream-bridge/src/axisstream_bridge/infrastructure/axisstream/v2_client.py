@@ -110,9 +110,9 @@ class DeviceMapper:
     _EXPECTED = {
         "id", "name", "description", "coordinates", "externalId", "sources",
         "categories", "dateInstalled", "replacementDeviceId", "commType",
-        "messageType", "active", "isWorkMode", "parameters", "preferredUOM",
-        "isHyperlocal", "createdAt", "updatedAt", "dmsExternalId", "sensorSetCode",
-        "provider", "metadata", "sourceCode",
+        "messageType", "active", "online", "isOnline", "status", "isWorkMode",
+        "parameters", "preferredUOM", "isHyperlocal", "createdAt", "updatedAt",
+        "dmsExternalId", "sensorSetCode", "provider", "metadata", "sourceCode",
     }
 
     @classmethod
@@ -159,6 +159,19 @@ class DeviceMapper:
         elif "level" in source_norm or "tank" in source_norm:
             source_norm = "waterlevel"
 
+        raw_active = raw.get("active")
+        if isinstance(raw_active, str):
+            is_active = raw_active.strip().lower() not in {"false", "0", "off", "inactive", "disabled"}
+        elif raw_active is not None:
+            is_active = bool(raw_active)
+        else:
+            is_active = True
+        if raw.get("isOnline") is False or raw.get("online") is False:
+            is_active = False
+        raw_status = str(raw.get("status") or "").strip().lower()
+        if raw_status in {"offline", "inactive", "off", "disabled"}:
+            is_active = False
+
         return Device(
             id=str(raw["id"]),
             name=str(raw.get("name", "")),
@@ -167,7 +180,7 @@ class DeviceMapper:
             source_code=source_norm,
             sensor_set_code=str(raw.get("sensorSetCode") or ""),
             comm_type=str(raw.get("commType") or ""),
-            active=bool(raw.get("active", True)),
+            active=is_active,
             preferred_uom=str(raw.get("preferredUOM") or "metric"),
             coordinates=coords,
             updated_at=parse_iso_timestamp(raw.get("updatedAt")),

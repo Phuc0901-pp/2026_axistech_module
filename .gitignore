@@ -19,3 +19,4 @@ __pycache__/
 *.log
 services/erp-platform/erp-server.exe
 services/erp-platform/*.exe
+services/erp-platform/*.exe~

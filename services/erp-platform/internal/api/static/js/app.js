@@ -1,11 +1,14 @@
 /* AxisTech ISO ERP Main Application Controller (Pure Lucide + Enterprise 3-Step Flow + Security Posture) */
 (() => {
   const MAX_SERIES_POINTS = 48;
+  const PAGE_SIZE = 20;
 
   const state = {
     projectId: "",
     selectedDeviceId: "",
     selectedMetricFilter: "ALL",
+    auditPage: 1,
+    alertHistoryPage: 1,
     theme: localStorage.getItem("axs_theme") || "dark",
     dash: null,
     security: null,
@@ -37,6 +40,57 @@
     if (["OPEN", "OFFLINE", "HIGH", "CRITICAL", "FAILED"].includes(s)) return `<span class="badge badge-danger">${s}</span>`;
     if (s === "NO_DATA") return `<span class="badge badge-muted">NO_DATA</span>`;
     return `<span class="badge badge-info">${s || "N/A"}</span>`;
+  }
+
+  function getDevicePowerState(dev, snap) {
+    const devActive = dev ? dev.active !== false : true;
+    const snapStatus = String(snap?.status || "UNKNOWN").toUpperCase();
+    const isOn = devActive && snapStatus === "LIVE";
+    const reason = !devActive ? "Disabled" : snapStatus === "LIVE" ? "Active" : snapStatus === "OFFLINE" ? "Offline" : "No Signal";
+    return { isOn, label: isOn ? "ON" : "OFF", reason };
+  }
+
+  function powerBadge(dev, snap) {
+    const p = getDevicePowerState(dev, snap);
+    const ic = window.ERPIcons ? window.ERPIcons.iconHtml(p.isOn ? "power" : "power-off", 12) : "";
+    return `<span class="power-pill ${p.isOn ? "on" : "off"}" title="Power: ${p.label} (${p.reason})"><span class="power-dot"></span>${ic}<span>${p.label}</span></span>`;
+  }
+
+  function renderTablePagination(pagerEl, totalItems, currentPage, pageSize, onPageChange) {
+    if (!pagerEl) return 1;
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+    const safePage = Math.min(Math.max(1, currentPage), totalPages);
+    if (!totalItems) {
+      pagerEl.innerHTML = `<span class="kpi-sub">0 records (20 records/page)</span>`;
+      return 1;
+    }
+    const startIdx = (safePage - 1) * pageSize + 1;
+    const endIdx = Math.min(totalItems, safePage * pageSize);
+
+    let pageButtons = "";
+    const winStart = Math.max(1, safePage - 2);
+    const winEnd = Math.min(totalPages, safePage + 2);
+    for (let p = winStart; p <= winEnd; p++) {
+      pageButtons += `<button type="button" class="page-btn ${p === safePage ? "active" : ""}" data-page="${p}">${p}</button>`;
+    }
+
+    pagerEl.innerHTML = `
+      <span class="tabular-nums">Showing <strong>${startIdx}-${endIdx}</strong> of <strong>${totalItems}</strong> records (${pageSize}/page)</span>
+      <div class="page-controls">
+        <button type="button" class="page-btn" data-page="${safePage - 1}" ${safePage <= 1 ? "disabled" : ""}>Prev</button>
+        ${pageButtons}
+        <button type="button" class="page-btn" data-page="${safePage + 1}" ${safePage >= totalPages ? "disabled" : ""}>Next</button>
+      </div>
+    `;
+    pagerEl.querySelectorAll(".page-btn[data-page]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const nextPage = Number(btn.dataset.page);
+        if (nextPage >= 1 && nextPage <= totalPages && nextPage !== safePage) {
+          onPageChange(nextPage);
+        }
+      });
+    });
+    return safePage;
   }
 
   function weatherLucideIcon(symbol = "") {
@@ -303,7 +357,10 @@
               <div class="mono" style="color:var(--muted)">${dev.external_id} · ${dev.source_code}</div>
             </div>
           </div>
-          ${badge(snap.status)}
+          <div style="display:flex;align-items:center;gap:6px;">
+            ${powerBadge(dev, snap)}
+            ${badge(snap.status)}
+          </div>
         </div>
         <div style="display:flex;gap:5px;flex-wrap:wrap;">${topMetrics || '<span class="kpi-sub">Click to view diagnostics &amp; real-time graph</span>'}</div>
       </div>`;
@@ -449,6 +506,7 @@
           <div>
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
               <strong style="font-size:1.05rem;">${dev.name}</strong>
+              ${powerBadge(dev, snap)}
               ${badge(status)}
               <span class="badge badge-info">${dev.source_code}</span>
               <span class="badge badge-ok tabular-nums">${readings.length} channels</span>
@@ -567,8 +625,11 @@
 
     const sec = state.security || d.security || {};
     const encLabel = sec.encryption_at_rest ? sec.encryption_algorithm : "Standby";
+    const snapMap = Object.fromEntries((d.snapshots || []).map((s) => [s.device_id, s]));
+    const onCount = (d.devices || []).filter((dev) => getDevicePowerState(dev, snapMap[dev.id]).isOn).length;
+    const offCount = Math.max(0, (d.devices || []).length - onCount);
     const kpis = [
-      ["AxisTech IoT Fleet", d.total_devices, `${d.live_devices} LIVE · ${d.no_data_devices} NO_DATA`, "cpu"],
+      ["AxisTech IoT Fleet", d.total_devices, `${onCount} ON · ${offCount} OFF (${d.live_devices} LIVE)`, "cpu"],
       ["Open Incidents", d.open_incidents, `${d.acknowledged_incidents} Acknowledged · ${d.active_policies} Policies`, "bell-ring"],
       ["Weather Exchange", d.exchange_rows, `${d.total_fields} Fields · ${d.total_assets} Assets`, "database"],
       ["ISO 27001 Security", sec.audit_chain_verified !== false ? "VERIFIED" : "ALERT", `Crypto: ${encLabel}`, "shield-check"],
@@ -596,7 +657,6 @@
       <div class="iso-row"><strong>${k}</strong><span class="badge badge-ok">${v}</span></div>
     `).join("");
 
-    const snapMap = Object.fromEntries((d.snapshots || []).map((s) => [s.device_id, s]));
     $("overviewDevicesBody").innerHTML = (d.devices || []).map((dev) => {
       const s = snapMap[dev.id] || {};
       const batt = s.metadata?.battery_level != null ? `${s.metadata.battery_level}%` : "-";
@@ -607,9 +667,10 @@
       return `<tr class="clickable-row" data-device-id="${dev.id}">
         <td><div style="display:flex;align-items:center;gap:9px;"><span class="icon-avatar" style="width:32px;height:32px;">${window.ERPIcons.deviceIconHtml(dev.source_code, 16)}</span><strong>${dev.name}</strong></div></td>
         <td><code>${dev.external_id}</code></td><td>${dev.source_code}</td><td>${dev.comm_type || "-"}</td>
-        <td>${badge(s.status || "UNKNOWN")}</td><td class="tabular-nums">${batt} / ${sig}</td><td class="tabular-nums">${ts}</td>
+        <td>${powerBadge(dev, s)}</td><td>${badge(s.status || "UNKNOWN")}</td>
+        <td class="tabular-nums">${batt} / ${sig}</td><td class="tabular-nums">${ts}</td>
       </tr>`;
-    }).join("") || '<tr><td colspan="7">No devices in selected project</td></tr>';
+    }).join("") || '<tr><td colspan="8">No devices in selected project</td></tr>';
 
     $("overviewDevicesBody").querySelectorAll("tr[data-device-id]").forEach((tr) => {
       tr.addEventListener("click", () => openInspectorForDevice(tr.dataset.deviceId));
@@ -636,7 +697,10 @@
             <div class="icon-avatar">${window.ERPIcons.deviceIconHtml(s.source_code, 22)}</div>
             <div><strong>${dev.name}</strong><div class="mono" style="color:var(--muted)">${s.external_id} · ${s.source_code}</div></div>
           </div>
-          ${badge(s.status)}
+          <div style="display:flex;align-items:center;gap:6px;">
+            ${powerBadge(dev, s)}
+            ${badge(s.status)}
+          </div>
         </div>
         ${metricsHtml}
       </div>`;
@@ -677,10 +741,10 @@
     $("forecastDaysGrid").innerHTML = (met.days || []).map((d) => `
       <div class="forecast-day-card">
         <div class="forecast-day-date">${d.date}</div>
-        ${window.ERPIcons.iconHtml(weatherLucideIcon(d.symbol), 28)}
+        ${window.ERPIcons.weatherSymbolHtml(d.symbol, 28)}
         <div class="forecast-day-temps tabular-nums">${f(d.temperature_max, "°")} / ${f(d.temperature_min, "°")}</div>
         <div class="kpi-sub tabular-nums">Rain: ${f(d.precipitation, " mm")}</div>
-        <div class="kpi-sub">${d.symbol || "-"}</div>
+        ${window.ERPIcons.weatherSymbolBadgeHtml(d.symbol)}
       </div>
     `).join("") || `<div class="kpi-sub">No forecast days available</div>`;
 
@@ -688,44 +752,106 @@
       <tr class="tabular-nums">
         <td>${s.time_utc}</td><td>${f(s.temperature)}</td><td>${f(s.feels_like)}</td><td>${f(s.humidity)}</td>
         <td>${f(s.pressure)}</td><td>${f(s.wind_speed)}</td><td>${f(s.precipitation_1h)}</td>
-        <td>${f(s.cloud_cover)}</td><td>${f(s.uv_index)}</td><td>${s.symbol || "-"}</td>
+        <td>${f(s.cloud_cover)}</td><td>${f(s.uv_index)}</td><td>${window.ERPIcons.weatherSymbolBadgeHtml(s.symbol)}</td>
       </tr>
     `).join("") || '<tr><td colspan="10">No hourly forecast steps</td></tr>';
 
     window.ERPCharts.renderForecastChart($("forecastCanvas"), $("forecastTooltip"), steps);
 
     const fcSteps = steps.slice(0, 24);
+    const curSymbolHtml = cur ? window.ERPIcons.weatherSymbolBadgeHtml(cur.symbol) : "";
+    if ($("forecastSymbolStrip")) {
+      $("forecastSymbolStrip").innerHTML = fcSteps.slice(0, 10).map((s) => {
+        const hhmm = String(s.time_utc || "").slice(11, 16) || "-";
+        const symMeta = window.ERPIcons.getWeatherSymbolMeta(s.symbol);
+        return `<div class="forecast-hour-chip" style="border-top:2px solid ${symMeta.color};">
+          <div class="forecast-hour-time">${hhmm} UTC</div>
+          ${window.ERPIcons.weatherSymbolHtml(s.symbol, 20)}
+          <div class="forecast-hour-temp tabular-nums">${f(s.temperature, "°C")}</div>
+          <div class="kpi-sub tabular-nums" style="margin-top:0;font-size:0.69rem;">${f(s.precipitation_1h ?? 0, " mm")}</div>
+        </div>`;
+      }).join("");
+    }
+
+    const uvNow = Number(cur?.uv_index ?? 0);
+    const uvBadge = uvNow >= 8
+      ? `<span class="badge badge-danger">Very High UV</span>`
+      : uvNow >= 6
+        ? `<span class="badge badge-warn">High UV</span>`
+        : `<span class="badge badge-ok">Low / Moderate UV</span>`;
+
     const fcPts = (fn) => fcSteps.filter((s) => fn(s) != null).map((s) => ({ t: String(s.time_utc || "").slice(11, 16), v: Number(fn(s)) }));
     window.ERPCharts.renderComponentChartsGrid($("forecastComponentCharts"), [
       {
-        id: "fc_temp", title: "Forecast Temperature & Feels Like", unit: "°C", icon: "thermometer-sun",
+        id: "fc_temp",
+        title: "Air Temp & Feels Like",
+        subtitle: "2m ambient & apparent thermal curve",
+        unit: "°C",
+        icon: "thermometer-sun",
+        accentColor: "#f59e0b",
+        badgeHtml: curSymbolHtml,
         series: [
           { label: "Temp", unit: "°C", color: "#38bdf8", points: fcPts((s) => s.temperature) },
           { label: "Feels Like", unit: "°C", color: "#f59e0b", points: fcPts((s) => s.feels_like) },
         ],
       },
       {
-        id: "fc_rain", title: "Hourly Precipitation", unit: "mm", icon: "cloud-rain",
-        series: [{ label: "Rain 1h", unit: "mm", color: "#22c55e", points: fcPts((s) => s.precipitation_1h ?? s.precipitation_6h ?? 0) }],
+        id: "fc_rain",
+        title: "Hourly Precipitation",
+        subtitle: "Spray & runoff rainfall histogram",
+        unit: "mm",
+        icon: "cloud-rain",
+        accentColor: "#0ea5e9",
+        chartType: "bar",
+        badgeHtml: curSymbolHtml,
+        series: [{ label: "Rain 1h", unit: "mm", color: "#0ea5e9", points: fcPts((s) => s.precipitation_1h ?? s.precipitation_6h ?? 0) }],
       },
       {
-        id: "fc_rh", title: "Relative Humidity", unit: "%", icon: "droplet",
+        id: "fc_rh",
+        title: "Relative Humidity",
+        subtitle: "Canopy moisture & dew risk",
+        unit: "%",
+        icon: "droplet",
+        accentColor: "#14b8a6",
         series: [{ label: "Humidity", unit: "%", color: "#14b8a6", points: fcPts((s) => s.humidity) }],
       },
       {
-        id: "fc_wind", title: "Wind Speed Forecast", unit: "km/h", icon: "wind",
+        id: "fc_wind",
+        title: "Wind Speed Forecast",
+        subtitle: "Drift assessment for field ops",
+        unit: "km/h",
+        icon: "wind",
+        accentColor: "#a78bfa",
         series: [{ label: "Wind", unit: "km/h", color: "#a78bfa", points: fcPts((s) => s.wind_speed) }],
       },
       {
-        id: "fc_pressure", title: "Atmospheric Pressure Forecast", unit: "hPa", icon: "gauge",
+        id: "fc_pressure",
+        title: "Atmospheric Pressure",
+        subtitle: "Sea-level synoptics",
+        unit: "hPa",
+        icon: "gauge",
+        accentColor: "#60a5fa",
         series: [{ label: "Pressure", unit: "hPa", color: "#60a5fa", points: fcPts((s) => s.pressure) }],
       },
       {
-        id: "fc_cloud_uv", title: "Cloud Cover & UV Index", unit: "%", icon: "cloud-sun",
-        series: [
-          { label: "Cloud Cover", unit: "%", color: "#94a3b8", points: fcPts((s) => s.cloud_cover) },
-          { label: "UV Index", unit: "UV", color: "#facc15", points: fcPts((s) => s.uv_index) },
-        ],
+        id: "fc_cloud",
+        title: "Cloud Cover Fraction",
+        subtitle: "Sky opacity % across 24h",
+        unit: "%",
+        icon: "cloud",
+        accentColor: "#94a3b8",
+        badgeHtml: curSymbolHtml,
+        series: [{ label: "Cloud Cover", unit: "%", color: "#94a3b8", points: fcPts((s) => s.cloud_cover) }],
+      },
+      {
+        id: "fc_uv",
+        title: "UV Radiation Index",
+        subtitle: "Solar exposure hazard tracking",
+        unit: "UV",
+        icon: "sun",
+        accentColor: "#facc15",
+        badgeHtml: uvBadge,
+        series: [{ label: "UV Index", unit: "UV", color: "#facc15", points: fcPts((s) => s.uv_index) }],
       },
     ]);
 
@@ -774,7 +900,19 @@
       <tr><td>${p.name}</td><td>${p.device_name}</td><td>${badge(p.priority)}</td><td>${badge(p.status)}</td><td class="tabular-nums">${p.frequency_window_minutes}m</td></tr>
     `).join("") || '<tr><td colspan="5">No alert policies</td></tr>';
 
-    $("alertHistoryBody").innerHTML = (history || []).slice(0, 30).map((h) => `
+    const safeAlertPage = renderTablePagination(
+      $("alertHistoryPagination"),
+      (history || []).length,
+      state.alertHistoryPage,
+      PAGE_SIZE,
+      (nextPage) => {
+        state.alertHistoryPage = nextPage;
+        renderAlertsAndExchange(incidents, policies, history, tokens, rows);
+      }
+    );
+    state.alertHistoryPage = safeAlertPage;
+    const alertSlice = (history || []).slice((safeAlertPage - 1) * PAGE_SIZE, safeAlertPage * PAGE_SIZE);
+    $("alertHistoryBody").innerHTML = alertSlice.map((h) => `
       <tr>
         <td class="tabular-nums">${h.triggered_at_utc || "-"}</td><td>${h.policy_name}</td><td>${h.device_name || "-"}</td>
         <td>${h.rule_description}</td><td>${badge(h.delivery_status)}</td><td class="tabular-nums">${h.notification_count}</td>
@@ -848,7 +986,19 @@
         <div class="metric-box"><div class="metric-name">${k}</div><div class="metric-val" style="font-size:0.9rem;">${v}</div></div>
       `).join("");
     }
-    $("auditBody").innerHTML = entries.map((e) => `
+    const safeAuditPage = renderTablePagination(
+      $("auditPagination"),
+      (entries || []).length,
+      state.auditPage,
+      PAGE_SIZE,
+      (nextPage) => {
+        state.auditPage = nextPage;
+        renderAudit(entries, sec);
+      }
+    );
+    state.auditPage = safeAuditPage;
+    const auditSlice = (entries || []).slice((safeAuditPage - 1) * PAGE_SIZE, safeAuditPage * PAGE_SIZE);
+    $("auditBody").innerHTML = auditSlice.map((e) => `
       <tr>
         <td class="tabular-nums">${e.timestamp_utc}</td><td>${e.actor}</td><td><strong>${e.action}</strong></td>
         <td>${e.resource_type}:${e.resource_id}</td><td><code>${(e.correlation_id || "").slice(0, 12)}</code></td>
@@ -900,7 +1050,7 @@
       api(`/api/erp/v1/incidents${pq}`),
       api(`/api/erp/v1/exchange/weather${pq}`),
       api(`/api/erp/v1/forecast${pq}`),
-      api(`/api/erp/v1/audit?limit=40`),
+      api(`/api/erp/v1/audit?limit=200`),
       api(`/api/erp/v1/telemetry/history${pq}&hours=24`).catch(() => ({ data: [] })),
       api(`/api/erp/v1/security/status`).catch(() => dash.security || null),
     ]);

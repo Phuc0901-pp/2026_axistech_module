@@ -358,16 +358,79 @@ canvas.erp-canvas {
 
 /* Split Per-Component Real-Time Chart Grid */
 .component-charts-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 12px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 14px;
 }
 .component-chart-card {
-  background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px;
-  display: flex; flex-direction: column; gap: 8px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.025) 0%, var(--surface-2) 100%);
+  border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px;
+  display: flex; flex-direction: column; gap: 10px;
+  transition: transform 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
+}
+.component-chart-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(56, 189, 248, 0.45);
+  box-shadow: var(--shadow-lg);
 }
 .component-chart-head {
-  display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; flex-wrap: wrap;
+}
+.component-icon-pill {
+  width: 30px; height: 30px; border-radius: 8px; border: 1px solid transparent;
+  display: grid; place-items: center; flex-shrink: 0;
 }
 .component-chart-stats {
-  display: flex; gap: 12px; flex-wrap: wrap; font-size: 0.73rem; color: var(--muted);
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 0.72rem; color: var(--muted);
 }
-canvas.erp-canvas-sm { height: 185px; }
+.stat-pill {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 2px 7px;
+}
+.stat-pill strong { color: var(--text); }
+canvas.erp-canvas-sm { height: 195px; }
+
+/* Device On/Off Power Indicators */
+.power-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.72rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; border: 1px solid transparent;
+}
+.power-pill svg { width: 12px; height: 12px; }
+.power-pill.on { background: rgba(34, 197, 94, 0.16); color: #22c55e; border-color: rgba(34, 197, 94, 0.42); }
+.power-pill.off { background: rgba(239, 68, 68, 0.14); color: #f87171; border-color: rgba(239, 68, 68, 0.36); }
+.power-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.power-pill.on .power-dot { box-shadow: 0 0 8px #22c55e; }
+
+/* Color-Coded Weather Symbols & Hourly Forecast Strip */
+.weather-sym-chip {
+  display: inline-grid; place-items: center; border-radius: 12px; border: 1px solid transparent;
+  flex-shrink: 0;
+}
+.weather-sym-badge {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; font-weight: 600;
+  padding: 3px 9px; border-radius: 999px; border: 1px solid transparent; white-space: nowrap;
+}
+.weather-sym-badge svg { width: 14px; height: 14px; flex-shrink: 0; }
+.forecast-section-head {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;
+}
+.forecast-symbol-strip {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 8px; margin-bottom: 14px;
+}
+.forecast-hour-chip {
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 9px 8px;
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 5px;
+}
+.forecast-hour-time { font-size: 0.72rem; font-weight: 700; color: var(--muted); }
+.forecast-hour-temp { font-size: 0.96rem; font-weight: 700; color: var(--text); }
+
+/* ERP Table Pagination (20 rows / page) */
+.table-pagination {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+  margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 0.78rem; color: var(--muted);
+}
+.page-controls { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.page-btn {
+  background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 7px;
+  padding: 4px 10px; font-size: 0.76rem; font-weight: 600; cursor: pointer;
+}
+.page-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.page-btn.active { background: var(--accent); color: #052236; border-color: var(--accent); }
+.page-btn:disabled { opacity: 0.45; cursor: not-allowed; }

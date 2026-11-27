@@ -317,7 +317,9 @@ window.ERPCharts = (() => {
     const ch = Math.max(40, h - padT - padB);
     const yOf = (v) => padT + ch - ((v - minVal) / (maxVal - minVal)) * ch;
 
-    ctx.strokeStyle = "rgba(148,163,184,0.16)";
+    ctx.save();
+    ctx.setLineDash([3, 4]);
+    ctx.strokeStyle = "rgba(148,163,184,0.18)";
     ctx.lineWidth = 1;
     for (let g = 0; g <= 4; g++) {
       const y = padT + (g / 4) * ch;
@@ -330,6 +332,7 @@ window.ERPCharts = (() => {
       ctx.font = "11px system-ui";
       ctx.fillText(`${labelVal.toFixed(1)}`, 6, y + 4);
     }
+    ctx.restore();
 
     const refLabels = seriesList[0].points.map((p) => p.t || "");
     const denom = Math.max(1, maxLen - 1);
@@ -344,23 +347,57 @@ window.ERPCharts = (() => {
       }
     });
 
+    const isBar = opts.chartType === "bar";
+    const smooth = opts.smooth !== false;
+    const drawSmoothPath = (pts) => {
+      pts.forEach((pt, idx) => {
+        const px = xOf(idx);
+        const py = yOf(Number(pt.v));
+        if (idx === 0) {
+          ctx.moveTo(px, py);
+        } else if (smooth && idx > 0) {
+          const prevX = xOf(idx - 1);
+          const prevY = yOf(Number(pts[idx - 1].v));
+          const cx = (prevX + px) / 2;
+          ctx.bezierCurveTo(cx, prevY, cx, py, px, py);
+        } else {
+          ctx.lineTo(px, py);
+        }
+      });
+    };
+
     const columns = [];
     seriesList.forEach((s, si) => {
       const color = s.color || palette[si % palette.length];
       const pts = s.points;
       if (!pts.length) return;
 
+      if (isBar) {
+        const barSlot = cw / Math.max(1, pts.length);
+        const bw = Math.max(4, Math.min(20, barSlot * 0.62));
+        const baseY = padT + ch;
+        pts.forEach((pt, idx) => {
+          const val = Number(pt.v);
+          const px = xOf(idx);
+          const py = yOf(val);
+          const barH = Math.max(2, baseY - py);
+          const grad = ctx.createLinearGradient(0, py, 0, baseY);
+          grad.addColorStop(0, `${color}ee`);
+          grad.addColorStop(1, `${color}33`);
+          ctx.fillStyle = grad;
+          ctx.fillRect(px - bw / 2, py, bw, barH);
+          if (!columns[idx]) columns[idx] = { x: px, time: pt.t || `#${idx + 1}`, items: [] };
+          columns[idx].items.push({ label: s.label, val, unit: s.unit || "", color });
+        });
+        return;
+      }
+
       const grad = ctx.createLinearGradient(0, padT, 0, padT + ch);
-      grad.addColorStop(0, `${color}44`);
-      grad.addColorStop(1, `${color}03`);
+      grad.addColorStop(0, `${color}48`);
+      grad.addColorStop(1, `${color}02`);
 
       ctx.beginPath();
-      pts.forEach((pt, idx) => {
-        const px = xOf(idx);
-        const py = yOf(Number(pt.v));
-        if (idx === 0) ctx.moveTo(px, py);
-        else ctx.lineTo(px, py);
-      });
+      drawSmoothPath(pts);
       if (pts.length > 1) {
         ctx.lineTo(xOf(pts.length - 1), padT + ch);
         ctx.lineTo(xOf(0), padT + ch);
@@ -370,23 +407,29 @@ window.ERPCharts = (() => {
       }
 
       ctx.strokeStyle = color;
-      ctx.lineWidth = 2.2;
+      ctx.lineWidth = 2.4;
       ctx.beginPath();
+      drawSmoothPath(pts);
       pts.forEach((pt, idx) => {
         const px = xOf(idx);
-        const py = yOf(Number(pt.v));
-        if (idx === 0) ctx.moveTo(px, py);
-        else ctx.lineTo(px, py);
         if (!columns[idx]) columns[idx] = { x: px, time: pt.t || `#${idx + 1}`, items: [] };
         columns[idx].items.push({ label: s.label, val: Number(pt.v), unit: s.unit || "", color });
       });
       ctx.stroke();
 
       pts.forEach((pt, idx) => {
-        ctx.fillStyle = color;
+        const px = xOf(idx);
+        const py = yOf(Number(pt.v));
+        const isLast = idx === pts.length - 1;
+        ctx.fillStyle = isLast ? "#ffffff" : color;
         ctx.beginPath();
-        ctx.arc(xOf(idx), yOf(Number(pt.v)), idx === pts.length - 1 ? 4 : 2.5, 0, Math.PI * 2);
+        ctx.arc(px, py, isLast ? 4.2 : 2.3, 0, Math.PI * 2);
         ctx.fill();
+        if (isLast) {
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
       });
     });
 
@@ -455,20 +498,29 @@ window.ERPCharts = (() => {
       });
       const minStr = allVals.length ? Math.min(...allVals).toFixed(1) : "-";
       const maxStr = allVals.length ? Math.max(...allVals).toFixed(1) : "-";
+      const avgStr = allVals.length ? (allVals.reduce((a, b) => a + b, 0) / allVals.length).toFixed(1) : "-";
+      const accent = sp.accentColor || sp.series[0]?.color || "#38bdf8";
       const iconHtml = window.ERPIcons ? window.ERPIcons.iconHtml(sp.icon || "activity", 16) : `<i data-lucide="activity"></i>`;
 
-      return `<div class="component-chart-card">
+      return `<div class="component-chart-card" style="border-top: 3px solid ${accent};">
         <div class="component-chart-head">
-          <div style="display:flex;align-items:center;gap:7px;font-weight:600;font-size:0.88rem;">
-            <span style="color:var(--accent);display:inline-flex;">${iconHtml}</span>
-            <span>${sp.title}</span>
+          <div style="display:flex;align-items:center;gap:9px;min-width:0;">
+            <span class="component-icon-pill" style="color:${accent};background:${accent}20;border-color:${accent}45;">${iconHtml}</span>
+            <div style="min-width:0;">
+              <div style="font-weight:600;font-size:0.88rem;line-height:1.25;">${sp.title}</div>
+              ${sp.subtitle ? `<div class="kpi-sub" style="margin-top:1px;font-size:0.71rem;">${sp.subtitle}</div>` : ""}
+            </div>
           </div>
-          <span class="badge badge-info tabular-nums">${latestStr}</span>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            ${sp.badgeHtml || ""}
+            <span class="badge badge-info tabular-nums" style="color:${accent};background:${accent}18;border-color:${accent}44;">Now: ${latestStr}</span>
+          </div>
         </div>
         <div class="component-chart-stats tabular-nums">
-          <span>Min: <strong>${minStr}</strong></span>
-          <span>Max: <strong>${maxStr}</strong></span>
-          <span>${sp.series.length} series · ${totalPts} pts</span>
+          <span class="stat-pill">Min <strong>${minStr}</strong></span>
+          <span class="stat-pill">Avg <strong>${avgStr}</strong></span>
+          <span class="stat-pill">Max <strong>${maxStr}</strong></span>
+          <span style="margin-left:auto;">${sp.series.length} series · ${totalPts} pts</span>
         </div>
         <div class="chart-wrap">
           <canvas id="${containerEl.id}_cv_${idx}" class="erp-canvas erp-canvas-sm"></canvas>
@@ -480,7 +532,7 @@ window.ERPCharts = (() => {
     validSpecs.forEach((sp, idx) => {
       const cv = document.getElementById(`${containerEl.id}_cv_${idx}`);
       const tt = document.getElementById(`${containerEl.id}_tt_${idx}`);
-      renderRealtimeSeries(cv, tt, { series: sp.series, height: 185, emptyText: sp.emptyText });
+      renderRealtimeSeries(cv, tt, { series: sp.series, height: 195, chartType: sp.chartType || "line", emptyText: sp.emptyText });
     });
     if (window.ERPIcons) window.ERPIcons.refresh(containerEl);
   }

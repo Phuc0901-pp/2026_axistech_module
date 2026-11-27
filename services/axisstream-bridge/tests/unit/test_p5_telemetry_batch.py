@@ -58,6 +58,12 @@ def test_ut_030_waterlevel_empty_and_epoch_sentinel_returns_no_data() -> None:
     assert snap.readings == []
     assert snap.metadata.battery_level is None
 
+    inactive_dev = Device(
+        id="id-off", name="Inactive Probe", external_id="20001OFF", source_code="waterlevel", active=False
+    )
+    snap_off = WaterLevelTelemetryMapper().map_payload(inactive_dev, WATERLEVEL_EMPTY_FIXTURE)
+    assert snap_off.status == "OFFLINE"
+
 
 @respx.mock
 async def test_ut_031_weather_mapper_12_metrics_and_optional_derived_fallback() -> None:

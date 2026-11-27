@@ -38,7 +38,8 @@ window.ERPInspector = (() => {
       </div>
 
       <div class="metric-grid">
-        <div class="metric-box"><div class="metric-name">Status</div><div class="metric-val">${snap.status}</div></div>
+        <div class="metric-box"><div class="metric-name">Power</div><div class="metric-val">${device.active !== false && snap.status === "LIVE" ? `<span class="power-pill on"><span class="power-dot"></span>ON</span>` : `<span class="power-pill off"><span class="power-dot"></span>OFF</span>`}</div></div>
+        <div class="metric-box"><div class="metric-name">Telemetry</div><div class="metric-val">${snap.status}</div></div>
         <div class="metric-box"><div class="metric-name">Battery</div><div class="metric-val tabular-nums">${meta.battery_level != null ? meta.battery_level + "%" : "-"}</div></div>
         <div class="metric-box"><div class="metric-name">Signal</div><div class="metric-val tabular-nums">${rssiBarsHtml(meta.signal_strength_dbm)} ${meta.signal_strength_dbm != null ? meta.signal_strength_dbm + " dBm" : "-"}</div></div>
         <div class="metric-box"><div class="metric-name">Interval</div><div class="metric-val">${meta.reading_interval || "-"}</div></div>

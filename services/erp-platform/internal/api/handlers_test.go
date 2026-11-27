@@ -383,7 +383,16 @@ func TestGUT041_PureLucideAxisTechEnterpriseERPWorkflow(t *testing.T) {
 	appRec := httptest.NewRecorder()
 	router.ServeHTTP(appRec, httptest.NewRequest(http.MethodGet, "/js/app.js", nil))
 	appJs := appRec.Body.String()
-	for _, sym := range []string{"renderCascadingWorkflow", "renderCascadingStep3", "getActiveWorkspaceContext", "renderAudit", "ERPIcons"} {
+	for _, sym := range []string{
+		"renderCascadingWorkflow",
+		"renderCascadingStep3",
+		"getActiveWorkspaceContext",
+		"renderAudit",
+		"powerBadge",
+		"PAGE_SIZE = 20",
+		"weatherSymbolBadgeHtml",
+		"ERPIcons",
+	} {
 		if !strings.Contains(appJs, sym) {
 			t.Fatalf("app.js missing ERP workflow symbol %q", sym)
 		}
@@ -425,6 +434,9 @@ func TestGUT042_RealtimeChartsEngineAndFavicon(t *testing.T) {
 		`id="componentChartsGrid"`,
 		`id="exchangeComponentCharts"`,
 		`id="forecastComponentCharts"`,
+		`id="forecastSymbolStrip"`,
+		`id="alertHistoryPagination"`,
+		`id="auditPagination"`,
 		`id="telemetryComponentCharts"`,
 		`id="securityPostureGrid"`,
 		`id="securityOverallBadge"`,

@@ -185,7 +185,8 @@
                   <th>External ID</th>
                   <th>Source</th>
                   <th>Comm</th>
-                  <th>Status</th>
+                  <th>Power (On/Off)</th>
+                  <th>Telemetry</th>
                   <th>Battery / Signal</th>
                   <th>Last Reported (UTC)</th>
                 </tr>
@@ -230,10 +231,14 @@
             <div id="forecastTooltip" class="chart-tooltip"></div>
           </div>
           <div style="margin-top:16px;">
-            <h4 style="font-size:0.86rem;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
-              <i data-lucide="layout-grid" style="width:15px;height:15px;color:var(--accent)"></i>
-              <span>Split Hourly Forecast Component Graphs (Temp · Feels Like · Rain · RH · Wind · Pressure · Cloud · UV)</span>
-            </h4>
+            <div class="forecast-section-head">
+              <h4 style="font-size:0.9rem;display:flex;align-items:center;gap:7px;">
+                <i data-lucide="layout-grid" style="width:16px;height:16px;color:var(--accent)"></i>
+                <span>Split Hourly Forecast Component Graphs (Temp · Feels Like · Rain · RH · Wind · Pressure · Cloud · UV)</span>
+              </h4>
+              <span class="badge badge-info">ISO 80000 Multi-Scale · Color Weather Symbols</span>
+            </div>
+            <div id="forecastSymbolStrip" class="forecast-symbol-strip"></div>
             <div id="forecastComponentCharts" class="component-charts-grid"></div>
           </div>
           <div class="table-wrap" style="margin-top:12px;">
@@ -358,6 +363,7 @@
                 <tbody id="alertHistoryBody"></tbody>
               </table>
             </div>
+            <div id="alertHistoryPagination" class="table-pagination"></div>
           </div>
         </div>
       </section>
@@ -424,6 +430,7 @@
               <tbody id="auditBody"></tbody>
             </table>
           </div>
+          <div id="auditPagination" class="table-pagination"></div>
         </div>
       </section>
     </main>

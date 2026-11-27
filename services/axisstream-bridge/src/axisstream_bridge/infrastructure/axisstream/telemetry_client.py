@@ -71,11 +71,18 @@ def _derive_status(
     device: Device,
     recent_data: dict[str, Any],
     latest_ts: datetime | None,
+    body: dict[str, Any] | None = None,
 ) -> str:
-    if not recent_data and latest_ts is None:
-        return "NO_DATA"
     if not device.active:
         return "OFFLINE"
+    if isinstance(body, dict):
+        meta = body.get("metadata") or {}
+        if body.get("isOnline") is False or body.get("online") is False or meta.get("online") is False or meta.get("isOnline") is False:
+            return "OFFLINE"
+        if str(body.get("status") or "").strip().lower() in {"offline", "off", "inactive", "disabled"}:
+            return "OFFLINE"
+    if not recent_data and latest_ts is None:
+        return "NO_DATA"
     return "LIVE"
 
 
@@ -96,7 +103,7 @@ class BaseTelemetryMapper:
             or metadata.last_reported_utc
             or fallback_ts
         )
-        status = _derive_status(device, recent, latest_ts)
+        status = _derive_status(device, recent, latest_ts, body)
         readings: list[TelemetryReading] = []
 
         if sample_ts is not None:
@@ -148,7 +155,7 @@ class SoilProbeTelemetryMapper(BaseTelemetryMapper):
             or metadata.last_reported_utc
             or fallback_ts
         )
-        status = _derive_status(device, recent, latest_ts)
+        status = _derive_status(device, recent, latest_ts, body)
         readings: list[TelemetryReading] = []
 
         if sample_ts is not None and isinstance(recent, dict):
@@ -254,7 +261,7 @@ class WeatherTelemetryMapper(BaseTelemetryMapper):
             or metadata.last_reported_utc
             or fallback_ts
         )
-        status = _derive_status(device, recent, latest_ts)
+        status = _derive_status(device, recent, latest_ts, body)
         readings: list[TelemetryReading] = []
 
         if sample_ts is not None:
