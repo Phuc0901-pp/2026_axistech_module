@@ -1,0 +1,70 @@
+services:
+  axisstream-bridge:
+    build:
+      context: ./services/axisstream-bridge
+    container_name: axistech_bridge
+    restart: unless-stopped
+    env_file:
+      - ./.env.prod
+    environment:
+      AXISSTREAM_SQLITE_PATH: /data/bridge_state.db
+    volumes:
+      - synology_bridge_data:/data
+    networks:
+      - agtech_internal
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health/ready')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  erp-platform:
+    build:
+      context: ./services/erp-platform
+    container_name: axistech_erp
+    restart: unless-stopped
+    depends_on:
+      axisstream-bridge:
+        condition: service_healthy
+    env_file:
+      - ./.env.prod
+    environment:
+      ERP_PORT: 8080
+      BRIDGE_BASE_URL: http://axisstream-bridge:8001
+      ERP_DATA_FILE_PATH: /data/erp_state.json
+      ERP_REQUIRE_API_KEY: ${ERP_REQUIRE_API_KEY:-true}
+    ports:
+      # Loopback-only for Synology DSM Control Panel -> Login Portal -> Reverse Proxy
+      - "127.0.0.1:8088:8080"
+    volumes:
+      - synology_erp_data:/data
+    networks:
+      - agtech_internal
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:8080/health/live || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  cloudflared:
+    profiles:
+      - tunnel
+    image: cloudflare/cloudflared:latest
+    container_name: axistech_cloudflared
+    restart: unless-stopped
+    depends_on:
+      erp-platform:
+        condition: service_healthy
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - agtech_internal
+
+volumes:
+  synology_bridge_data:
+  synology_erp_data:
+
+networks:
+  agtech_internal:
+    driver: bridge
