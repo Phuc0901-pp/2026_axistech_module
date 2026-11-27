@@ -365,6 +365,7 @@
   function switchTab(tabName, opts = {}) {
     state.activeTab = tabName;
     document.querySelectorAll(".nav-item").forEach((b) => b.classList.toggle("active", b.dataset.tab === tabName));
+    if (window.U417Sidebar) window.U417Sidebar.setActive(tabName);
     document.querySelectorAll(".tab-panel").forEach((p) => p.classList.toggle("active", p.id === `tab-${tabName}`));
     syncBrowserUrl(tabName, opts);
     if (tabName === "overview") {
@@ -733,6 +734,7 @@
 
   function renderOverview(d) {
     $("syncMeta").textContent = `Syncs: ${d.sync_status.sync_count || 0} | Bridge: ${d.sync_status.bridge_health}`;
+    if (window.U417Sidebar) window.U417Sidebar.setIncidentCount(Number(d.open_incidents || 0));
     const banner = $("errorBanner");
     if (d.sync_status && d.sync_status.last_error) {
       banner.textContent = `Sync Diagnostic: ${d.sync_status.last_error}`;

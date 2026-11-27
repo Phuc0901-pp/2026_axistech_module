@@ -8,37 +8,45 @@
   <link rel="stylesheet" href="/vendor/leaflet.min.css" />
   <link rel="stylesheet" href="/css/tokens.css" />
   <link rel="stylesheet" href="/css/app.css" />
+  <link rel="stylesheet" href="/css/sidebar-u417.css" />
 </head>
 <body>
   <div class="app-shell">
-    <aside class="sidebar">
-      <div class="brand">
-        <div class="brand-mark"><i data-lucide="radar" style="width:18px;height:18px"></i></div>
-        <div>
-          <div class="brand-title">AxisTech ERP</div>
-          <div class="brand-sub">ISA-101 · ISO 42010 / 27001</div>
+    <div class="ux u417">
+      <aside class="u417-sb" aria-label="Sidebar">
+        <div class="u417-hd">
+          <span class="u417-mk" aria-hidden="true"><i data-lucide="radar"></i></span>
+          <div class="u417-brand-copy u417-lb">
+            <b>AxisTech ERP</b>
+            <span class="u417-sub">ISA-101 · ISO 42010 / 27001</span>
+          </div>
         </div>
-      </div>
 
-      <nav class="nav-list">
-        <div class="nav-section-label">Operations</div>
-        <button class="nav-item active" data-tab="overview"><i data-lucide="layout-dashboard"></i><span>Executive Overview</span></button>
-        <button class="nav-item" data-tab="telemetry"><i data-lucide="activity"></i><span>IoT Telemetry</span></button>
-        <button class="nav-item" data-tab="forecast"><i data-lucide="cloud-sun-rain"></i><span>Weather Forecast</span></button>
-        <div class="nav-section-label">Geospatial &amp; Assets</div>
-        <button class="nav-item" data-tab="fields"><i data-lucide="satellite"></i><span>Geo Fields &amp; Satellite</span></button>
-        <button class="nav-item" data-tab="assets"><i data-lucide="tractor"></i><span>Assets &amp; Providers</span></button>
-        <div class="nav-section-label">API Modules &amp; Governance</div>
-        <button class="nav-item" data-tab="api-module"><i data-lucide="cpu"></i><span>API Module Device</span></button>
-        <button class="nav-item" data-tab="incidents"><i data-lucide="bell-ring"></i><span>Alerts &amp; Incidents</span></button>
-        <button class="nav-item" data-tab="audit"><i data-lucide="shield-check"></i><span>Security &amp; Audit Trail</span></button>
-      </nav>
+        <ul class="u417-nav">
+          <li class="u417-pl" aria-hidden="true"></li>
+          <li class="u417-sec" aria-hidden="true"><span class="u417-lb">Operations</span></li>
+          <li><button type="button" class="u417-it nav-item active" data-tab="overview" aria-current="page"><i data-lucide="layout-dashboard" aria-hidden="true"></i><span class="u417-lb">Executive Overview</span></button></li>
+          <li><button type="button" class="u417-it nav-item" data-tab="telemetry"><i data-lucide="activity" aria-hidden="true"></i><span class="u417-lb">IoT Telemetry</span></button></li>
+          <li><button type="button" class="u417-it nav-item" data-tab="forecast"><i data-lucide="cloud-sun-rain" aria-hidden="true"></i><span class="u417-lb">Weather Forecast</span></button></li>
+          <li class="u417-sec" aria-hidden="true"><span class="u417-lb">Geospatial &amp; Assets</span></li>
+          <li><button type="button" class="u417-it nav-item" data-tab="fields"><i data-lucide="satellite" aria-hidden="true"></i><span class="u417-lb">Geo Fields &amp; Satellite</span></button></li>
+          <li><button type="button" class="u417-it nav-item" data-tab="assets"><i data-lucide="tractor" aria-hidden="true"></i><span class="u417-lb">Assets &amp; Providers</span></button></li>
+          <li class="u417-sec" aria-hidden="true"><span class="u417-lb">API Modules &amp; Governance</span></li>
+          <li><button type="button" class="u417-it nav-item" data-tab="api-module"><i data-lucide="cpu" aria-hidden="true"></i><span class="u417-lb">API Module Device</span></button></li>
+          <li><button type="button" class="u417-it nav-item" data-tab="incidents"><i data-lucide="bell-ring" aria-hidden="true"></i><span class="u417-lb">Alerts &amp; Incidents</span><span id="u417IncidentBadge" class="u417-bd" aria-hidden="true" hidden>0</span></button></li>
+          <li><button type="button" class="u417-it nav-item" data-tab="audit"><i data-lucide="shield-check" aria-hidden="true"></i><span class="u417-lb">Security &amp; Audit Trail</span></button></li>
+        </ul>
 
-      <div class="sidebar-footer">
-        <div class="iso-pill"><i data-lucide="lock"></i><span>Read-Only Live Sync</span></div>
-        <div id="syncMeta" class="tabular-nums">Syncs: 0 | Bridge: INIT</div>
-      </div>
-    </aside>
+        <div class="u417-ft">
+          <div class="iso-pill"><i data-lucide="lock" aria-hidden="true"></i><span class="u417-lb">Read-Only Live Sync</span></div>
+          <div id="syncMeta" class="tabular-nums u417-lb">Syncs: 0 | Bridge: INIT</div>
+        </div>
+
+        <button class="u417-tg" type="button" aria-expanded="true" aria-label="Collapse sidebar">
+          <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M7.5 2.5 4 6l3.5 3.5" /></svg>
+        </button>
+      </aside>
+    </div>
 
     <main class="main-area">
       <header class="topbar">
@@ -511,6 +519,7 @@
   <script src="/js/map-engine.js"></script>
   <script src="/js/charts.js"></script>
   <script src="/js/inspector.js"></script>
+  <script src="/js/sidebar-u417.js"></script>
   <script src="/js/app.js"></script>
 </body>
 </html>

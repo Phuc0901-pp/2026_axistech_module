@@ -129,3 +129,4 @@
 | REQ-API-10: Device Module `available_metrics` & Filter | TBSG-ISO-T3 | G-UT-054 | Return `available_metrics`, `power_state`, GPS, `page_size=10` & single-metric chart |
 | REQ-SEC-18: Standalone Token Isolation & Admin Routes | TBSG-ISO-T4 | G-UT-055 | Reject forged `fcp_` tokens (`400`) while keeping admin `/tbsgagtech/v1/*` intact |
 | REQ-UI-11: Vietnamese Metric & Tooltip Standardization | TBSG-ISO-T5 | G-UT-056 | Standardize all device & point-forecast labels + tooltips (`getMetricMeta`) across ISO module & ERP UI |
+| REQ-UI-12: Collapsible Spring-Rail Sidebar (#417) | ERP-UX-T1 | G-UT-057 | Verify scoped `.u417` sidebar rail collapse, spring pill indicator, light/dark tokens, keyboard & reduced-motion support |

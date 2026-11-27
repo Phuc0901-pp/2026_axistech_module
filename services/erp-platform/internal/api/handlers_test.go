@@ -739,6 +739,82 @@ func TestGUT056_VietnameseMetricLocalizationAndTooltips(t *testing.T) {
 	}
 }
 
+func TestGUT057_CollapsibleSidebarU417NavigationAndA11y(t *testing.T) {
+	router, _ := setupTestRouter(t)
+
+	cssRec := httptest.NewRecorder()
+	router.ServeHTTP(cssRec, httptest.NewRequest(http.MethodGet, "/css/sidebar-u417.css", nil))
+	if cssRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for /css/sidebar-u417.css, got %d", cssRec.Code)
+	}
+	cssBody := cssRec.Body.String()
+	for _, tok := range []string{
+		"Lucian UX/UI Prompt #417 · MIT License (c) 2026 Seokwoooo",
+		".u417",
+		".u417-sb",
+		".u417-pl",
+		".u417-tg",
+		`[data-theme="light"] .u417`,
+		"prefers-reduced-motion: reduce",
+	} {
+		if !strings.Contains(cssBody, tok) {
+			t.Fatalf("sidebar-u417.css missing expected token %q", tok)
+		}
+	}
+
+	jsRec := httptest.NewRecorder()
+	router.ServeHTTP(jsRec, httptest.NewRequest(http.MethodGet, "/js/sidebar-u417.js", nil))
+	if jsRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for /js/sidebar-u417.js, got %d", jsRec.Code)
+	}
+	jsBody := jsRec.Body.String()
+	for _, tok := range []string{
+		"Lucian UX/UI Prompt #417 · MIT License (c) 2026 Seokwoooo",
+		"U417Sidebar",
+		"aria-expanded",
+		"aria-current",
+		"ArrowDown",
+		"ArrowUp",
+	} {
+		if !strings.Contains(jsBody, tok) {
+			t.Fatalf("sidebar-u417.js missing expected token %q", tok)
+		}
+	}
+
+	htmlRec := httptest.NewRecorder()
+	router.ServeHTTP(htmlRec, httptest.NewRequest(http.MethodGet, "/", nil))
+	if htmlRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for /, got %d", htmlRec.Code)
+	}
+	htmlBody := htmlRec.Body.String()
+	for _, tok := range []string{
+		"/css/sidebar-u417.css",
+		"/js/sidebar-u417.js",
+		`class="ux u417"`,
+		`class="u417-sb"`,
+		`class="u417-pl"`,
+		`class="u417-tg"`,
+		`id="u417IncidentBadge"`,
+		`data-tab="overview"`,
+		`data-tab="telemetry"`,
+		`data-tab="forecast"`,
+		`data-tab="fields"`,
+		`data-tab="assets"`,
+		`data-tab="api-module"`,
+		`data-tab="incidents"`,
+		`data-tab="audit"`,
+	} {
+		if !strings.Contains(htmlBody, tok) {
+			t.Fatalf("index.html missing collapsible sidebar wiring %q", tok)
+		}
+	}
+	for _, sampleCopy := range []string{"Haru", ">Inbox<", ">Calendar<"} {
+		if strings.Contains(htmlBody, sampleCopy) {
+			t.Fatalf("index.html leaked sample copy %q from demo snippet", sampleCopy)
+		}
+	}
+}
+
 func TestGUT045_RateLimiterAndRequireAPIKeyMutationGuard(t *testing.T) {
 	store, _ := repository.NewStore("")
 	hub := realtime.NewHub(8)
