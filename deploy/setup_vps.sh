@@ -45,12 +45,14 @@ if [ ! -f .env.prod ]; then
   AEAD_KEY="$(openssl rand -hex 32)"
   ERP_API="$(openssl rand -hex 24)"
   ERP_ENC="$(openssl rand -hex 32)"
+  PG_PASS="$(openssl rand -hex 20)"
 
   sed -i "s|CHANGE_ME_BRIDGE_API_KEY|${BRIDGE_KEY}|g" .env.prod
   sed -i "s|CHANGE_ME_WEBHOOK_SECRET|${WEBHOOK_KEY}|g" .env.prod
   sed -i "s|CHANGE_ME_AEAD_KEY|${AEAD_KEY}|g" .env.prod
   sed -i "s|CHANGE_ME_ERP_API_KEY|${ERP_API}|g" .env.prod
   sed -i "s|CHANGE_ME_ERP_AES256GCM_KEY|${ERP_ENC}|g" .env.prod
+  sed -i "s|CHANGE_ME_POSTGRES_PASSWORD|${PG_PASS}|g" .env.prod
   echo "  -> Generated .env.prod with randomized crypto & API keys."
 else
   echo "  -> .env.prod already exists (kept unchanged)."

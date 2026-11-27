@@ -33,6 +33,23 @@ func main() {
 		log.Error("Failed to initialize repository store", "error", err.Error())
 		os.Exit(1)
 	}
+	if cfg.DatabaseURL != "" {
+		pgCtx, pgCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		pgMirror, pgErr := repository.NewPostgresMirror(pgCtx, cfg.DatabaseURL)
+		pgCancel()
+		if pgErr != nil {
+			log.Warn("PostgreSQL connection unavailable at startup (falling back to encrypted file store)", "error", pgErr.Error())
+		} else {
+			defer pgMirror.Close()
+			attachCtx, attachCancel := context.WithTimeout(context.Background(), 10*time.Second)
+			if err := store.AttachPostgres(attachCtx, pgMirror); err != nil {
+				log.Warn("PostgreSQL initial sync failed", "error", err.Error())
+			} else {
+				log.Info("PostgreSQL 16 ISO store attached")
+			}
+			attachCancel()
+		}
+	}
 
 	hub := realtime.NewHub(64)
 	bridge := bridgeclient.New(cfg.BridgeBaseURL, cfg.BridgeAPIKey)

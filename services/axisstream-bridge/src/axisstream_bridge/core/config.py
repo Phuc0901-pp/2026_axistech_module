@@ -63,6 +63,10 @@ class BridgeSettings(BaseSettings):
     rate_limit_burst: int = Field(default=20, ge=1, le=1000)
 
     sqlite_path: str = ":memory:"
+    database_url: SecretStr = Field(
+        default=SecretStr(""),
+        validation_alias=AliasChoices("database_url", "AXISSTREAM_DATABASE_URL", "DATABASE_URL"),
+    )
     local_timezone: str = "Asia/Ho_Chi_Minh"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
 

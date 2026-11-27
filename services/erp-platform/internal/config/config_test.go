@@ -55,3 +55,19 @@ func TestGUT003_ConfigStringMasksSecrets(t *testing.T) {
 		t.Fatalf("expected [REDACTED] placeholder in Config.String(): %s", s)
 	}
 }
+
+func TestGUT059_ConfigDatabaseURLAndSecretMasking(t *testing.T) {
+	t.Setenv("ERP_DATABASE_URL", "postgresql://agtech_admin:SUPER_SECRET_DB_PASS@postgres:5432/axistech_erp")
+	cfg, err := LoadFromEnv()
+	if err != nil {
+		t.Fatalf("expected valid postgres DSN, got err: %v", err)
+	}
+	if cfg.DatabaseURL == "" || strings.Contains(cfg.String(), "SUPER_SECRET_DB_PASS") {
+		t.Fatalf("Config.String() leaked database password or missing DSN: %s", cfg.String())
+	}
+
+	t.Setenv("ERP_DATABASE_URL", "mysql://invalid")
+	if _, err := LoadFromEnv(); err == nil {
+		t.Fatal("expected error for non-postgres DatabaseURL")
+	}
+}

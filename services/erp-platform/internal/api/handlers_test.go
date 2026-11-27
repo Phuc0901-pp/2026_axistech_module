@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -869,6 +871,30 @@ func TestGUT058_ResponsiveMobileTabletBreakpointsAndTouchSupport(t *testing.T) {
 		if !strings.Contains(rec.Body.String(), "orientationchange") {
 			t.Fatalf("%s missing orientationchange responsive reflow handler", jsPath)
 		}
+	}
+}
+
+func TestGUT060_PostgresComposeIsolationAndMigrationContract(t *testing.T) {
+	repoRoot := filepath.Join("..", "..", "..", "..")
+	for _, composeName := range []string{"docker-compose.synology.yml", "docker-compose.prod.yml"} {
+		raw, err := os.ReadFile(filepath.Join(repoRoot, composeName))
+		if err != nil {
+			t.Fatalf("missing %s: %v", composeName, err)
+		}
+		txt := string(raw)
+		if !strings.Contains(txt, "postgres:16-alpine") || !strings.Contains(txt, "ERP_DATABASE_URL:") {
+			t.Fatalf("%s missing postgres:16-alpine or ERP_DATABASE_URL wiring", composeName)
+		}
+		if strings.Contains(txt, "5432:5432") {
+			t.Fatalf("%s must NOT expose Postgres port 5432 on host network", composeName)
+		}
+	}
+	sql003, err := os.ReadFile(filepath.Join(repoRoot, "db", "migrations", "003_security_rls_and_audit_immutability.sql"))
+	if err != nil {
+		t.Fatalf("missing 003_security_rls_and_audit_immutability.sql: %v", err)
+	}
+	if !strings.Contains(string(sql003), "trg_compliance_audit_immutable") {
+		t.Fatal("003_security_rls_and_audit_immutability.sql missing audit immutability trigger")
 	}
 }
 

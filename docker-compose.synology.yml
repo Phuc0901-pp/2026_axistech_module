@@ -1,13 +1,40 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: axistech_postgres
+    restart: unless-stopped
+    command: ["postgres", "-c", "shared_buffers=128MB", "-c", "work_mem=4MB", "-c", "max_connections=60"]
+    env_file:
+      - ./.env.prod
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-axistech_erp}
+      POSTGRES_USER: ${POSTGRES_USER:-agtech_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-CHANGE_ME_POSTGRES_PASSWORD}
+    volumes:
+      - ./db/migrations:/docker-entrypoint-initdb.d:ro
+      - synology_pg_data:/var/lib/postgresql/data
+    networks:
+      - agtech_internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agtech_admin} -d ${POSTGRES_DB:-axistech_erp}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
   axisstream-bridge:
     build:
       context: ./services/axisstream-bridge
     container_name: axistech_bridge
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
     env_file:
       - ./.env.prod
     environment:
       AXISSTREAM_SQLITE_PATH: /data/bridge_state.db
+      AXISSTREAM_DATABASE_URL: postgresql://${POSTGRES_USER:-agtech_admin}:${POSTGRES_PASSWORD:-CHANGE_ME_POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-axistech_erp}
     volumes:
       - synology_bridge_data:/data
     networks:
@@ -25,6 +52,8 @@ services:
     container_name: axistech_erp
     restart: unless-stopped
     depends_on:
+      postgres:
+        condition: service_healthy
       axisstream-bridge:
         condition: service_healthy
     env_file:
@@ -33,6 +62,7 @@ services:
       ERP_PORT: 8080
       BRIDGE_BASE_URL: http://axisstream-bridge:8001
       ERP_DATA_FILE_PATH: /data/erp_state.json
+      ERP_DATABASE_URL: postgresql://${POSTGRES_USER:-agtech_admin}:${POSTGRES_PASSWORD:-CHANGE_ME_POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-axistech_erp}
       ERP_REQUIRE_API_KEY: ${ERP_REQUIRE_API_KEY:-true}
     ports:
       # Loopback-only for Synology DSM Control Panel -> Login Portal -> Reverse Proxy
@@ -62,6 +92,7 @@ services:
       - agtech_internal
 
 volumes:
+  synology_pg_data:
   synology_bridge_data:
   synology_erp_data:
 

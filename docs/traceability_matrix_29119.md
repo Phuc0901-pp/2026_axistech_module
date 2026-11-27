@@ -131,3 +131,7 @@
 | REQ-UI-11: Vietnamese Metric & Tooltip Standardization | TBSG-ISO-T5 | G-UT-056 | Standardize all device & point-forecast labels + tooltips (`getMetricMeta`) across ISO module & ERP UI |
 | REQ-UI-12: Collapsible Spring-Rail Sidebar (#417) | ERP-UX-T1 | G-UT-057 | Verify scoped `.u417` sidebar rail collapse, spring pill indicator, light/dark tokens, keyboard & reduced-motion support |
 | REQ-UI-13: Mobile & Tablet Auto-Scale Responsive UI | ERP-UX-T2 | G-UT-058 | Verify `viewport-fit=cover`, 1024/768/480 breakpoints, off-canvas mobile drawer, touch chart tooltips & orientation reflow |
+| REQ-DB-01: ISO 4-Schema Postgres 16 Migrations | AXS-DB-T1 | UT-072 | Verify `core/telemetry/ops/compliance` schemas, monthly range partitions, BRIN/partial indexes, RLS & immutable audit trigger |
+| REQ-DB-02: PostgresStateStore & AEAD Outbox | AXS-DB-T2 | UT-073 | Verify `PostgresStateStore` cursors, dedup, `ENC:v1:` outbox, Epoch-1970 guard & masked `database_url` |
+| REQ-DB-03: Go `ERP_DATABASE_URL` & Secret Redaction | ERP-DB-T1 | G-UT-059 | Verify `ERP_DATABASE_URL` validation (`postgres://`/`postgresql://`) and redaction in `Config.String()` |
+| REQ-DB-04: Postgres Compose Network Isolation | ERP-DB-T2 | G-UT-060 | Verify `postgres:16-alpine` on private `agtech_internal` (no `5432:5432` host bind) & audit immutability trigger |

@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -34,6 +35,7 @@ type persistedSnapshot struct {
 type Store struct {
 	mu             sync.RWMutex
 	filePath       string
+	pgMirror       *PostgresMirror
 	cipher         *security.AESCipher
 	projects       []domain.Project
 	devices        map[string][]domain.Device
@@ -119,6 +121,11 @@ func (s *Store) load() error {
 	if err := json.Unmarshal(payload, &snap); err != nil {
 		return err
 	}
+	s.applySnapshotLocked(snap)
+	return nil
+}
+
+func (s *Store) applySnapshotLocked(snap persistedSnapshot) {
 	s.projects = snap.Projects
 	if snap.Devices != nil {
 		s.devices = snap.Devices
@@ -163,14 +170,28 @@ func (s *Store) load() error {
 	}
 	s.auditLog = snap.AuditLog
 	s.syncStatus = snap.SyncStatus
-	return nil
 }
 
-func (s *Store) persistLocked() error {
-	if s.filePath == "" {
+// AttachPostgres binds a PostgreSQL 16 mirror and hydrates empty in-memory state from Postgres if available.
+func (s *Store) AttachPostgres(ctx context.Context, mirror *PostgresMirror) error {
+	if mirror == nil {
 		return nil
 	}
-	snap := persistedSnapshot{
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.pgMirror = mirror
+	if len(s.projects) == 0 && len(s.auditLog) == 0 {
+		loaded, err := mirror.LoadSnapshot(ctx)
+		if err == nil && (len(loaded.Projects) > 0 || len(loaded.AuditLog) > 0) {
+			s.applySnapshotLocked(loaded)
+			return nil
+		}
+	}
+	return mirror.SyncSnapshot(ctx, s.snapshotLocked())
+}
+
+func (s *Store) snapshotLocked() persistedSnapshot {
+	return persistedSnapshot{
 		Projects:       s.projects,
 		Devices:        s.devices,
 		Snapshots:      s.snapshots,
@@ -186,6 +207,18 @@ func (s *Store) persistLocked() error {
 		Incidents:      s.incidents,
 		AuditLog:       s.auditLog,
 		SyncStatus:     s.syncStatus,
+	}
+}
+
+func (s *Store) persistLocked() error {
+	snap := s.snapshotLocked()
+	if s.pgMirror != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		_ = s.pgMirror.SyncSnapshot(ctx, snap)
+		cancel()
+	}
+	if s.filePath == "" {
+		return nil
 	}
 	data, err := json.MarshalIndent(snap, "", "  ")
 	if err != nil {

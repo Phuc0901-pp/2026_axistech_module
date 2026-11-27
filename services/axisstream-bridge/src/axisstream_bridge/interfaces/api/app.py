@@ -24,6 +24,7 @@ from axisstream_bridge.core.exceptions import AxisStreamError
 from axisstream_bridge.core.logging import configure_logging, get_or_create_correlation_id
 from axisstream_bridge.domain.normalizers import validate_safe_path_segment
 from axisstream_bridge.infrastructure.http.circuit_breaker import CircuitBreaker, CircuitState
+from axisstream_bridge.infrastructure.storage.postgres_store import PostgresStateStore
 from axisstream_bridge.infrastructure.storage.state_store import SqliteStateStore
 from axisstream_bridge.interfaces.api.security import (
     CorrelationAndSecurityMiddleware,
@@ -58,16 +59,25 @@ def create_app(
     *,
     provider: Any | None = None,
     circuit_breaker: CircuitBreaker | None = None,
-    state_store: SqliteStateStore | None = None,
+    state_store: Any | None = None,
     enable_background_sync: bool = True,
 ) -> FastAPI:
     cfg = settings or BridgeSettings()
     configure_logging(cfg.log_level)
 
-    store = state_store or SqliteStateStore(
-        cfg.sqlite_path,
-        encryption_key=cfg.encryption_key.get_secret_value(),
-    )
+    db_url = cfg.database_url.get_secret_value().strip() if hasattr(cfg, "database_url") else ""
+    if state_store is not None:
+        store = state_store
+    elif db_url.startswith(("postgres://", "postgresql://")):
+        store = PostgresStateStore(
+            db_url,
+            encryption_key=cfg.encryption_key.get_secret_value(),
+        )
+    else:
+        store = SqliteStateStore(
+            cfg.sqlite_path,
+            encryption_key=cfg.encryption_key.get_secret_value(),
+        )
     cb = circuit_breaker or CircuitBreaker(
         failure_threshold=cfg.circuit_failure_threshold,
         recovery_timeout_sec=cfg.circuit_recovery_sec,

@@ -19,6 +19,7 @@ type Config struct {
 	RateLimitRPM    int
 	SyncIntervalSec int
 	DataFilePath    string
+	DatabaseURL     string
 	LogLevel        string
 }
 
@@ -78,6 +79,11 @@ func LoadFromEnv() (Config, error) {
 	} else if v := strings.TrimSpace(os.Getenv("DATA_FILE_PATH")); v != "" {
 		cfg.DataFilePath = v
 	}
+	if v := strings.TrimSpace(os.Getenv("ERP_DATABASE_URL")); v != "" {
+		cfg.DatabaseURL = v
+	} else if v := strings.TrimSpace(os.Getenv("DATABASE_URL")); v != "" {
+		cfg.DatabaseURL = v
+	}
 	if v := strings.TrimSpace(os.Getenv("LOG_LEVEL")); v != "" {
 		cfg.LogLevel = strings.ToUpper(v)
 	}
@@ -106,13 +112,22 @@ func (c Config) Validate() error {
 	if strings.TrimSpace(c.BridgeAPIKey) == "" {
 		return fmt.Errorf("BRIDGE_API_KEY must not be empty")
 	}
+	if db := strings.TrimSpace(c.DatabaseURL); db != "" {
+		if !strings.HasPrefix(db, "postgres://") && !strings.HasPrefix(db, "postgresql://") {
+			return fmt.Errorf("invalid DatabaseURL scheme (must be postgres:// or postgresql://)")
+		}
+	}
 	return nil
 }
 
-// String implements fmt.Stringer while masking secret API keys.
+// String implements fmt.Stringer while masking secret API keys and DB DSN.
 func (c Config) String() string {
+	dbDisplay := ""
+	if strings.TrimSpace(c.DatabaseURL) != "" {
+		dbDisplay = "[REDACTED]"
+	}
 	return fmt.Sprintf(
-		"Config{Port:%d, BridgeBaseURL:%q, BridgeAPIKey:[REDACTED], ERPAPIKey:[REDACTED], EncryptionKey:[REDACTED], RequireAPIKey:%v, RateLimitRPM:%d, SyncIntervalSec:%d, DataFilePath:%q, LogLevel:%q}",
-		c.Port, c.BridgeBaseURL, c.RequireAPIKey, c.RateLimitRPM, c.SyncIntervalSec, c.DataFilePath, c.LogLevel,
+		"Config{Port:%d, BridgeBaseURL:%q, BridgeAPIKey:[REDACTED], ERPAPIKey:[REDACTED], EncryptionKey:[REDACTED], RequireAPIKey:%v, RateLimitRPM:%d, SyncIntervalSec:%d, DataFilePath:%q, DatabaseURL:%q, LogLevel:%q}",
+		c.Port, c.BridgeBaseURL, c.RequireAPIKey, c.RateLimitRPM, c.SyncIntervalSec, c.DataFilePath, dbDisplay, c.LogLevel,
 	)
 }
