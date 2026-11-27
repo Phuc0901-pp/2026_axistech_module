@@ -2,6 +2,8 @@
 init.js
 .env
 .env.local
+.env.prod
+deploy/.env.prod
 
 # Runtime persisted state & databases
 data/
