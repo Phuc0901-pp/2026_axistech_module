@@ -1060,3 +1060,30 @@ func TestGUT044_TelemetryHistoryEndpointAndHydrationWiring(t *testing.T) {
 		t.Fatal("app.js missing telemetry history hydration wiring")
 	}
 }
+
+func TestGUT063_UIGuardRightClickAndDevToolsShortcutLock(t *testing.T) {
+	router, _ := setupTestRouter(t)
+
+	guardRec := httptest.NewRecorder()
+	router.ServeHTTP(guardRec, httptest.NewRequest(http.MethodGet, "/js/ui-guard.js", nil))
+	if guardRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for /js/ui-guard.js, got %d", guardRec.Code)
+	}
+	guardBody := guardRec.Body.String()
+	for _, token := range []string{"contextmenu", "F12", "preventDefault"} {
+		if !strings.Contains(guardBody, token) {
+			t.Fatalf("ui-guard.js missing %q", token)
+		}
+	}
+
+	for _, pagePath := range []string{"/", "/login", "/tbsgagtech/v1/modules/devices/demo"} {
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, pagePath, nil))
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200 for %s, got %d", pagePath, rec.Code)
+		}
+		if !strings.Contains(rec.Body.String(), `/js/ui-guard.js`) {
+			t.Fatalf("page %s missing /js/ui-guard.js include", pagePath)
+		}
+	}
+}
