@@ -135,3 +135,6 @@
 | REQ-DB-02: PostgresStateStore & AEAD Outbox | AXS-DB-T2 | UT-073 | Verify `PostgresStateStore` cursors, dedup, `ENC:v1:` outbox, Epoch-1970 guard & masked `database_url` |
 | REQ-DB-03: Go `ERP_DATABASE_URL` & Secret Redaction | ERP-DB-T1 | G-UT-059 | Verify `ERP_DATABASE_URL` validation (`postgres://`/`postgresql://`) and redaction in `Config.String()` |
 | REQ-DB-04: Postgres Compose Network Isolation | ERP-DB-T2 | G-UT-060 | Verify `postgres:16-alpine` on private `agtech_internal` (no `5432:5432` host bind) & audit immutability trigger |
+| REQ-SEC-19: Salted PBKDF2 User Seed Migration | AXS-AUTH-T1 | UT-074 | Verify `005_users_and_sessions.sql` creates `core.users`/`core.user_sessions` with `pbkdf2_sha256$` digest only |
+| REQ-SEC-20: Login/Logout Session Cookie & Audit | ERP-AUTH-T1 | G-UT-061 | Verify `POST /api/auth/login` tries counter (`401`), HMAC `axistech_session` cookie (`200`), `/api/auth/me`, `/api/auth/logout` |
+| REQ-UI-14: Module Axistech Branding, #062 Login & Mobile Focus | ERP-UX-T3 | G-UT-062 | Verify `/img/logo.png`, `#062` login view, `overflow-x: clip` sticky sidebar & mobile Focus Chart Switcher |

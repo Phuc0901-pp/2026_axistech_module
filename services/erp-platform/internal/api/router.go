@@ -41,6 +41,23 @@ func NewRouterWithOptions(h *Handler, log *slog.Logger, opts RouterSecurityOptio
 	mux.HandleFunc("POST /api/erp/v1/sync/now", h.TriggerSync)
 	mux.HandleFunc("GET /api/erp/v1/events", h.StreamEvents)
 
+	// ISO Authentication API & Login Page
+	mux.HandleFunc("POST /api/auth/login", h.PostAuthLogin)
+	mux.HandleFunc("POST /api/auth/logout", h.PostAuthLogout)
+	mux.HandleFunc("GET /api/auth/me", h.GetAuthMe)
+	serveLoginView := func(w http.ResponseWriter, r *http.Request) {
+		raw, err := fs.ReadFile(staticFiles, "static/login.html")
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(raw)
+	}
+	mux.HandleFunc("GET /login", serveLoginView)
+	mux.HandleFunc("GET /tbsgagtech/v1/login", serveLoginView)
+
 	// Portable ISO 27001 encrypted REST endpoints (tbsgagtech namespace)
 	mux.HandleFunc("GET /api/tbsgagtech/v1/modules/catalog", h.GetModulesCatalog)
 	mux.HandleFunc("GET /api/tbsgagtech/v1/modules/devices/", h.GetDeviceModule)

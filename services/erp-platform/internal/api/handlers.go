@@ -24,6 +24,7 @@ type Handler struct {
 	hub    *realtime.Hub
 	log    *slog.Logger
 	tokens *security.ResourceTokenCodec
+	auth   *security.AuthManager
 }
 
 func NewHandler(svc *service.ERPService, store *repository.Store, hub *realtime.Hub, log *slog.Logger) *Handler {
@@ -33,12 +34,19 @@ func NewHandler(svc *service.ERPService, store *repository.Store, hub *realtime.
 		hub:    hub,
 		log:    log,
 		tokens: security.NewResourceTokenCodec(""),
+		auth:   security.NewAuthManager(""),
 	}
 }
 
 func (h *Handler) SetTokenCodec(codec *security.ResourceTokenCodec) {
 	if codec != nil {
 		h.tokens = codec
+	}
+}
+
+func (h *Handler) SetAuthManager(am *security.AuthManager) {
+	if am != nil {
+		h.auth = am
 	}
 }
 

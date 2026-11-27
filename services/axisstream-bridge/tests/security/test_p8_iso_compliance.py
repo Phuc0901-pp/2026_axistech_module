@@ -213,9 +213,9 @@ def test_ut_054_iso29119_traceability_matrix_completeness() -> None:
     matrix_path = platform_root / "docs" / "traceability_matrix_29119.md"
     assert matrix_path.exists(), "docs/traceability_matrix_29119.md must exist"
     matrix_text = matrix_path.read_text(encoding="utf-8")
-    for idx in range(1, 74):
+    for idx in range(1, 75):
         ut_id = f"UT-{idx:03d}"
         assert ut_id in matrix_text, f"Missing {ut_id} in traceability matrix"
-    for idx in range(1, 61):
+    for idx in range(1, 63):
         gut_id = f"G-UT-{idx:03d}"
         assert gut_id in matrix_text, f"Missing {gut_id} in traceability matrix"

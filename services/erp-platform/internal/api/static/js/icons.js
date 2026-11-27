@@ -55,32 +55,47 @@ window.ERPIcons = (() => {
     const raw = String(symbol || "").trim();
     const s = raw.toLowerCase();
     const isNight = s.includes("_night") || s.endsWith("night");
-    const label = raw
-      ? raw.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-      : "Unknown";
 
     if (s.includes("thunder")) {
       return {
         icon: "cloud-lightning",
-        label,
+        label: "Dông sét",
         color: "#c084fc",
         bg: "rgba(192, 132, 252, 0.16)",
         border: "rgba(192, 132, 252, 0.42)",
       };
     }
-    if (s.includes("heavyrain") || s.includes("rainshowers")) {
+    if (s.includes("heavyrain")) {
       return {
         icon: "cloud-rain-wind",
-        label,
+        label: "Mưa lớn",
         color: "#0ea5e9",
         bg: "rgba(14, 165, 233, 0.16)",
         border: "rgba(14, 165, 233, 0.42)",
       };
     }
-    if (s.includes("rain") || s.includes("drizzle") || s.includes("sleet")) {
+    if (s.includes("rainshowers")) {
+      return {
+        icon: "cloud-rain-wind",
+        label: "Mưa rào",
+        color: "#0ea5e9",
+        bg: "rgba(14, 165, 233, 0.16)",
+        border: "rgba(14, 165, 233, 0.42)",
+      };
+    }
+    if (s.includes("lightrain") || s.includes("drizzle")) {
       return {
         icon: "cloud-rain",
-        label,
+        label: "Mưa nhẹ",
+        color: "#38bdf8",
+        bg: "rgba(56, 189, 248, 0.16)",
+        border: "rgba(56, 189, 248, 0.40)",
+      };
+    }
+    if (s.includes("rain") || s.includes("sleet")) {
+      return {
+        icon: "cloud-rain",
+        label: "Có mưa",
         color: "#38bdf8",
         bg: "rgba(56, 189, 248, 0.16)",
         border: "rgba(56, 189, 248, 0.40)",
@@ -89,7 +104,7 @@ window.ERPIcons = (() => {
     if (s.includes("snow")) {
       return {
         icon: "snowflake",
-        label,
+        label: "Tuyết rơi",
         color: "#67e8f9",
         bg: "rgba(103, 232, 249, 0.16)",
         border: "rgba(103, 232, 249, 0.42)",
@@ -98,7 +113,7 @@ window.ERPIcons = (() => {
     if (s.includes("fog")) {
       return {
         icon: "cloud-fog",
-        label,
+        label: "Sương mù",
         color: "#94a3b8",
         bg: "rgba(148, 163, 184, 0.16)",
         border: "rgba(148, 163, 184, 0.40)",
@@ -107,7 +122,7 @@ window.ERPIcons = (() => {
     if (isNight && (s.includes("clear") || s.includes("fair"))) {
       return {
         icon: "moon-star",
-        label,
+        label: "Đêm quang",
         color: "#818cf8",
         bg: "rgba(129, 140, 248, 0.16)",
         border: "rgba(129, 140, 248, 0.40)",
@@ -116,7 +131,7 @@ window.ERPIcons = (() => {
     if (isNight && s.includes("partly")) {
       return {
         icon: "cloud-moon",
-        label,
+        label: "Đêm ít mây",
         color: "#a78bfa",
         bg: "rgba(167, 139, 250, 0.16)",
         border: "rgba(167, 139, 250, 0.40)",
@@ -125,7 +140,7 @@ window.ERPIcons = (() => {
     if (s.includes("clear") || s.includes("fair") || s.includes("sun")) {
       return {
         icon: "sun",
-        label,
+        label: "Quang mây",
         color: "#f59e0b",
         bg: "rgba(245, 158, 11, 0.16)",
         border: "rgba(245, 158, 11, 0.42)",
@@ -134,7 +149,7 @@ window.ERPIcons = (() => {
     if (s.includes("partly")) {
       return {
         icon: "cloud-sun",
-        label,
+        label: "Ít mây",
         color: "#fbbf24",
         bg: "rgba(251, 191, 36, 0.16)",
         border: "rgba(251, 191, 36, 0.40)",
@@ -143,7 +158,7 @@ window.ERPIcons = (() => {
     if (s.includes("cloud")) {
       return {
         icon: "cloud",
-        label,
+        label: "Nhiều mây",
         color: "#64748b",
         bg: "rgba(100, 116, 139, 0.16)",
         border: "rgba(100, 116, 139, 0.40)",
@@ -151,7 +166,7 @@ window.ERPIcons = (() => {
     }
     return {
       icon: "cloud-sun",
-      label,
+      label: raw || "Ổn định",
       color: "#38bdf8",
       bg: "rgba(56, 189, 248, 0.14)",
       border: "rgba(56, 189, 248, 0.36)",
@@ -217,6 +232,7 @@ window.ERPIcons = (() => {
     rainfall_total: { label: "Lượng mưa tích lũy", tooltip: "Tổng lượng mưa tích lũy" },
     rainfall_last_24hrs: { label: "Lượng mưa 24 giờ qua", tooltip: "Lượng mưa trong 24 giờ gần nhất" },
     cloud_cover: { label: "Độ che phủ mây", tooltip: "Tỷ lệ mây che phủ bầu trời" },
+    battery: { label: "Nguồn pin", tooltip: "Điện áp / Trạng thái pin thiết bị" },
     battery_pct: { label: "Mức pin", tooltip: "Trạng thái / Dung lượng pin thiết bị" },
     battery_level: { label: "Mức pin", tooltip: "Trạng thái / Dung lượng pin thiết bị" },
     battery_voltage: { label: "Điện áp pin", tooltip: "Điện áp nguồn pin thiết bị" },

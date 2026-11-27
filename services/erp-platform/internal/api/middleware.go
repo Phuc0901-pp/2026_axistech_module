@@ -130,7 +130,8 @@ func SecurityAndCorrelationMiddleware(log *slog.Logger, next http.Handler, opts 
 				WriteProblemJSON(w, http.StatusTooManyRequests, "RATE_LIMIT_EXCEEDED", "API rate limit exceeded", cid)
 				return
 			}
-			if cfg.RequireAPIKey && r.Method == http.MethodPost {
+			isAuthEndpoint := r.URL.Path == "/api/auth/login" || r.URL.Path == "/api/auth/logout"
+			if cfg.RequireAPIKey && r.Method == http.MethodPost && !isAuthEndpoint {
 				provided := strings.TrimSpace(r.Header.Get("X-API-Key"))
 				expected := strings.TrimSpace(cfg.APIKey)
 				if expected == "" || len(provided) != len(expected) || subtle.ConstantTimeCompare([]byte(provided), []byte(expected)) != 1 {

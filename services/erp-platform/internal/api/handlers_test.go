@@ -898,6 +898,106 @@ func TestGUT060_PostgresComposeIsolationAndMigrationContract(t *testing.T) {
 	}
 }
 
+func TestGUT061_AuthLoginLogoutSessionAndPBKDF2(t *testing.T) {
+	store, _ := repository.NewStore("")
+	hub := realtime.NewHub(8)
+	log := logger.NewJSONLogger(io.Discard, "INFO")
+	svc := service.NewERPService(store, &apiTestBridge{}, hub, log)
+	h := NewHandler(svc, store, hub, log)
+	am := h.auth
+	if err := am.RegisterUser("operator@tanbaocorp.vn", "Test Operator", "OPERATOR", "OpTestPass!2026"); err != nil {
+		t.Fatalf("RegisterUser failed: %v", err)
+	}
+	router := NewRouterWithOptions(h, log, RouterSecurityOptions{
+		RateLimitRPM:  300,
+		RequireAPIKey: true,
+		APIKey:        "internal-api-key",
+	})
+
+	badBody := strings.NewReader(`{"email":"operator@tanbaocorp.vn","password":"wrong"}`)
+	badRec := httptest.NewRecorder()
+	badReq := httptest.NewRequest(http.MethodPost, "/api/auth/login", badBody)
+	badReq.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(badRec, badReq)
+	if badRec.Code != http.StatusUnauthorized || !strings.Contains(badRec.Body.String(), `"tries_left":2`) {
+		t.Fatalf("expected 401 with tries_left=2, got %d %s", badRec.Code, badRec.Body.String())
+	}
+
+	okBody := strings.NewReader(`{"email":"operator@tanbaocorp.vn","password":"OpTestPass!2026"}`)
+	okRec := httptest.NewRecorder()
+	okReq := httptest.NewRequest(http.MethodPost, "/api/auth/login", okBody)
+	okReq.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(okRec, okReq)
+	if okRec.Code != http.StatusOK || !strings.Contains(okRec.Body.String(), `"ok":true`) {
+		t.Fatalf("expected 200 login ok, got %d %s", okRec.Code, okRec.Body.String())
+	}
+	cookies := okRec.Result().Cookies()
+	if len(cookies) == 0 || cookies[0].Name != "axistech_session" {
+		t.Fatalf("expected axistech_session cookie, got %+v", cookies)
+	}
+
+	meRec := httptest.NewRecorder()
+	meReq := httptest.NewRequest(http.MethodGet, "/api/auth/me", nil)
+	meReq.AddCookie(cookies[0])
+	router.ServeHTTP(meRec, meReq)
+	if meRec.Code != http.StatusOK || !strings.Contains(meRec.Body.String(), `"authenticated":true`) {
+		t.Fatalf("expected authenticated:true on /api/auth/me, got %d %s", meRec.Code, meRec.Body.String())
+	}
+
+	outRec := httptest.NewRecorder()
+	router.ServeHTTP(outRec, httptest.NewRequest(http.MethodPost, "/api/auth/logout", nil))
+	if outRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 on /api/auth/logout, got %d", outRec.Code)
+	}
+}
+
+func TestGUT062_ModuleAxistechBrandingLogoLoginU062AndMobileFocus(t *testing.T) {
+	router, _ := setupTestRouter(t)
+
+	logoRec := httptest.NewRecorder()
+	router.ServeHTTP(logoRec, httptest.NewRequest(http.MethodGet, "/img/logo.png", nil))
+	if logoRec.Code != http.StatusOK || logoRec.Body.Len() < 100 || !bytes.HasPrefix(logoRec.Body.Bytes(), []byte{0x89, 'P', 'N', 'G'}) {
+		t.Fatalf("expected valid PNG /img/logo.png, got status=%d len=%d", logoRec.Code, logoRec.Body.Len())
+	}
+
+	for _, loginRoute := range []string{"/login", "/tbsgagtech/v1/login"} {
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, loginRoute, nil))
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200 on %s, got %d", loginRoute, rec.Code)
+		}
+		html := rec.Body.String()
+		for _, tok := range []string{"Module Axistech", "/img/logo.png", "u062", "login-u062.css", "login-u062.js", "admin@tanbaocorp.vn"} {
+			if !strings.Contains(html, tok) {
+				t.Fatalf("%s missing token %q", loginRoute, tok)
+			}
+		}
+		for _, sample := range []string{"Lumen", "Seoyeon", "lumen2026"} {
+			if strings.Contains(html, sample) {
+				t.Fatalf("%s leaked sample string %q", loginRoute, sample)
+			}
+		}
+	}
+
+	idxRec := httptest.NewRecorder()
+	router.ServeHTTP(idxRec, httptest.NewRequest(http.MethodGet, "/", nil))
+	if !strings.Contains(idxRec.Body.String(), "Module Axistech") || !strings.Contains(idxRec.Body.String(), `id="logoutBtn"`) {
+		t.Fatal("index.html missing Module Axistech brand or logoutBtn")
+	}
+
+	cssRec := httptest.NewRecorder()
+	router.ServeHTTP(cssRec, httptest.NewRequest(http.MethodGet, "/css/app.css", nil))
+	if !strings.Contains(cssRec.Body.String(), "overflow-x: clip") {
+		t.Fatal("app.css must use overflow-x: clip so sticky sidebar stays pinned")
+	}
+
+	chartsRec := httptest.NewRecorder()
+	router.ServeHTTP(chartsRec, httptest.NewRequest(http.MethodGet, "/js/charts.js", nil))
+	if !strings.Contains(chartsRec.Body.String(), "focus-chart-bar") {
+		t.Fatal("charts.js missing mobile/tablet Focus Chart mode")
+	}
+}
+
 func TestGUT045_RateLimiterAndRequireAPIKeyMutationGuard(t *testing.T) {
 	store, _ := repository.NewStore("")
 	hub := realtime.NewHub(8)

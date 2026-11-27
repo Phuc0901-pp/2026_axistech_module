@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Đăng nhập — Module Axistech</title>
+  <link rel="icon" type="image/png" href="/img/logo.png" />
+  <link rel="apple-touch-icon" href="/img/logo.png" />
+  <link rel="stylesheet" href="/css/tokens.css" />
+  <link rel="stylesheet" href="/css/login-u062.css" />
+</head>
+<body class="login-shell">
+  <div class="login-topbar">
+    <button id="loginThemeBtn" type="button" class="login-theme-btn">Đổi giao diện Sáng / Tối</button>
+  </div>
+
+  <div class="ux u062">
+    <form class="u062-pane u062-login" novalidate>
+      <span class="u062-logo" aria-hidden="true">
+        <img src="/img/logo.png" alt="Module Axistech" />
+      </span>
+      <h3>Module Axistech</h3>
+      <p>Đăng nhập hệ thống giám sát &amp; điều phối chuẩn ISO</p>
+
+      <div class="u062-f u062-em">
+        <label>Email tài khoản</label>
+        <div class="u062-box">
+          <input type="email" placeholder="admin@tanbaocorp.vn" autocomplete="username" required />
+        </div>
+      </div>
+
+      <div class="u062-f u062-pw">
+        <label>Mật khẩu</label>
+        <span class="u062-caps" aria-live="polite">Đang bật Caps Lock</span>
+        <div class="u062-box">
+          <input type="password" placeholder="Nhập mật khẩu" autocomplete="current-password" required />
+          <button class="u062-eye" type="button" aria-pressed="false" aria-label="Hiện mật khẩu">
+            <svg viewBox="0 0 24 24">
+              <g class="u062-lid">
+                <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
+                <circle cx="12" cy="12" r="3" />
+              </g>
+              <path class="u062-slash" d="M4 4l16 16" />
+            </svg>
+          </button>
+        </div>
+        <div class="u062-err"><span role="alert"></span></div>
+      </div>
+
+      <div class="u062-row">
+        <span>ISO 27001 PBKDF2 Auth</span>
+        <a href="#">Quên mật khẩu?</a>
+      </div>
+
+      <button class="u062-go" type="submit">
+        <span>Đăng nhập</span>
+        <i aria-hidden="true"></i>
+        <svg viewBox="0 0 26 26" aria-hidden="true"><path d="M6 13.5l4.5 4.5L20 8.5" /></svg>
+      </button>
+    </form>
+
+    <div class="u062-pane u062-hi" aria-hidden="true">
+      <span class="u062-av" aria-hidden="true">
+        <img src="/img/logo.png" alt="Module Axistech" />
+      </span>
+      <h3 id="u062WelcomeTitle">Xin chào, Admin</h3>
+      <p id="u062WelcomeSub">Đang chuyển vào bảng điều khiển...</p>
+      <button type="button" tabindex="-1">Đăng nhập tài khoản khác</button>
+    </div>
+  </div>
+
+  <script src="/js/login-u062.js"></script>
+</body>
+</html>

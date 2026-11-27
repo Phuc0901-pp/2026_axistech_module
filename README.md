@@ -52,14 +52,14 @@ $env:ERP_ENCRYPTION_KEY="dev-demo-aead-encryption-key"
 
 ---
 
-## Kiểm thử tự động (133 Tests · ISO 29119 Traceable)
+## Kiểm thử tự động (136 Tests · ISO 29119 Traceable)
 
 ```powershell
-# Python Bridge (73 tests: UT-001..UT-073)
+# Python Bridge (74 tests: UT-001..UT-074)
 cd d:\Project\2026_SATO\axisstream_erp_platform\services\axisstream-bridge
 .\.venv\Scripts\python.exe -m pytest -q --cov=axisstream_bridge
 
-# Golang ISO ERP (60 tests: G-UT-001..G-UT-060)
+# Golang ISO ERP (62 tests: G-UT-001..G-UT-062)
 cd d:\Project\2026_SATO\axisstream_erp_platform\services\erp-platform
 $env:GOCACHE="$PWD\.gocache"; $env:GOPATH="$PWD\.gopath"
 go test -v -cover ./...

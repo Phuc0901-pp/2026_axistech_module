@@ -225,3 +225,12 @@ def test_ut_073_postgres_state_store_contracts_and_aead(monkeypatch) -> None:
     assert saved == 1
     hist = store.query_telemetry_history("proj-1", device_id="dev-1")
     assert len(hist) == 1 and hist[0]["metric"] == "temperature"
+
+
+def test_ut_074_user_auth_migration_zero_plaintext() -> None:
+    root = Path(__file__).resolve().parents[4]
+    sql_005 = (root / "db" / "migrations" / "005_users_and_sessions.sql").read_text(encoding="utf-8")
+    assert "CREATE TABLE IF NOT EXISTS core.users" in sql_005
+    assert "CREATE TABLE IF NOT EXISTS core.user_sessions" in sql_005
+    assert "admin@tanbaocorp.vn" in sql_005
+    assert "pbkdf2_sha256$100000$" in sql_005

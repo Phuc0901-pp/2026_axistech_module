@@ -33,6 +33,7 @@ func main() {
 		log.Error("Failed to initialize repository store", "error", err.Error())
 		os.Exit(1)
 	}
+	authMgr := security.NewAuthManager(cfg.EncryptionKey)
 	if cfg.DatabaseURL != "" {
 		pgCtx, pgCancel := context.WithTimeout(context.Background(), 10*time.Second)
 		pgMirror, pgErr := repository.NewPostgresMirror(pgCtx, cfg.DatabaseURL)
@@ -41,6 +42,7 @@ func main() {
 			log.Warn("PostgreSQL connection unavailable at startup (falling back to encrypted file store)", "error", pgErr.Error())
 		} else {
 			defer pgMirror.Close()
+			authMgr.SetUserHooks(pgMirror.FindUserByEmail, pgMirror.RecordUserLogin)
 			attachCtx, attachCancel := context.WithTimeout(context.Background(), 10*time.Second)
 			if err := store.AttachPostgres(attachCtx, pgMirror); err != nil {
 				log.Warn("PostgreSQL initial sync failed", "error", err.Error())
@@ -64,6 +66,7 @@ func main() {
 
 	handler := api.NewHandler(svc, store, hub, log)
 	handler.SetTokenCodec(security.NewResourceTokenCodec(cfg.EncryptionKey))
+	handler.SetAuthManager(authMgr)
 	router := api.NewRouterWithOptions(handler, log, api.RouterSecurityOptions{
 		RateLimitRPM:  cfg.RateLimitRPM,
 		RequireAPIKey: cfg.RequireAPIKey,

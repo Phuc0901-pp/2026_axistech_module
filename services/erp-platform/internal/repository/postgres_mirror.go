@@ -9,6 +9,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tanbaocorp/axisstream-erp/internal/domain"
+	"github.com/tanbaocorp/axisstream-erp/internal/security"
 )
 
 var epochGuardCutoff = time.Date(1971, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -377,4 +378,41 @@ func (m *PostgresMirror) SyncSnapshot(ctx context.Context, snap persistedSnapsho
 	}
 
 	return tx.Commit(ctx)
+}
+
+// FindUserByEmail loads an active user account from core.users for PBKDF2 authentication.
+func (m *PostgresMirror) FindUserByEmail(ctx context.Context, email string) (*security.AuthUser, error) {
+	if m == nil || m.pool == nil {
+		return nil, nil
+	}
+	var u security.AuthUser
+	err := m.pool.QueryRow(ctx, `
+		SELECT id, email, display_name, role, password_hash, active, last_login_utc
+		FROM core.users
+		WHERE lower(email) = lower($1)
+	`, strings.TrimSpace(email)).Scan(&u.ID, &u.Email, &u.DisplayName, &u.Role, &u.PasswordHash, &u.Active, &u.LastLoginUTC)
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
+}
+
+// RecordUserLogin updates failed login count or last_login_utc in core.users.
+func (m *PostgresMirror) RecordUserLogin(ctx context.Context, email string, success bool) {
+	if m == nil || m.pool == nil {
+		return
+	}
+	if success {
+		_, _ = m.pool.Exec(ctx, `
+			UPDATE core.users
+			SET failed_attempts = 0, last_login_utc = now(), updated_at = now()
+			WHERE lower(email) = lower($1)
+		`, strings.TrimSpace(email))
+		return
+	}
+	_, _ = m.pool.Exec(ctx, `
+		UPDATE core.users
+		SET failed_attempts = failed_attempts + 1, updated_at = now()
+		WHERE lower(email) = lower($1)
+	`, strings.TrimSpace(email))
 }

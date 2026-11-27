@@ -458,7 +458,10 @@
       const snap = snapMap[dev.id] || { status: "UNKNOWN", readings: [] };
       const isSelected = dev.id === state.selectedDeviceId;
       const topMetrics = (snap.readings || []).slice(0, 3)
-        .map((r) => `<span class="badge badge-info tabular-nums">${r.metric}${r.depth_level ? ` D${r.depth_level}` : ""}: ${r.value ?? "-"} ${r.unit || ""}</span>`)
+        .map((r) => {
+          const mm = window.ERPIcons.getMetricMeta(r.metric, r.depth_level);
+          return `<span class="badge badge-info tabular-nums" title="${mm.tooltip}">${mm.label}: ${r.value ?? "-"} ${r.unit || ""}</span>`;
+        })
         .join("");
 
       return `<div class="product-card ${isSelected ? "active" : ""}" data-product-id="${dev.id}">
@@ -805,11 +808,19 @@
 
   function renderTelemetry(d) {
     const devMap = Object.fromEntries((d.devices || []).map((dev) => [dev.id, dev]));
+    const isPhone = window.innerWidth <= 768;
     $("telemetryCards").innerHTML = (d.snapshots || []).map((s) => {
       const dev = devMap[s.device_id] || { name: s.external_id, source_code: s.source_code };
       const soilHtml = s.source_code === "soilprobe" ? window.ERPCharts.renderSoilDepthHtml(s.readings) : "";
+      const allReadings = s.readings || [];
+      const expanded = state.telemetryExpanded?.[s.device_id] === true;
+      const shownReadings = (isPhone && !expanded && allReadings.length > 4) ? allReadings.slice(0, 4) : allReadings;
+      const extraCount = allReadings.length - shownReadings.length;
+      const moreBtnHtml = (isPhone && allReadings.length > 4)
+        ? `<button type="button" class="telemetry-more-btn" data-expand-dev="${s.device_id}">${expanded ? "Thu gọn" : `Xem thêm (+${extraCount} thông số)`}</button>`
+        : "";
       const metricsHtml = soilHtml || `<div class="metric-grid">
-        ${(s.readings || []).map((r) => {
+        ${shownReadings.map((r) => {
           const mm = window.ERPIcons.getMetricMeta(r.metric, r.depth_level);
           return `
           <div class="metric-box" title="${mm.tooltip}">
@@ -818,7 +829,7 @@
           </div>
         `;
         }).join("") || '<div class="kpi-sub">Chưa có dữ liệu đo (Epoch 1970 / NO_DATA guarded)</div>'}
-      </div>`;
+      </div>${moreBtnHtml}`;
 
       return `<div class="sensor-card" data-device-id="${s.device_id}">
         <div class="sensor-card-head">
@@ -834,6 +845,16 @@
         ${metricsHtml}
       </div>`;
     }).join("") || '<div class="kpi-sub">No sensor telemetry snapshots in this project.</div>';
+
+    $("telemetryCards").querySelectorAll(".telemetry-more-btn[data-expand-dev]").forEach((btn) => {
+      btn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        if (!state.telemetryExpanded) state.telemetryExpanded = {};
+        const did = btn.dataset.expandDev;
+        state.telemetryExpanded[did] = !state.telemetryExpanded[did];
+        renderTelemetry(d);
+      });
+    });
 
     $("telemetryCards").querySelectorAll(".sensor-card[data-device-id]").forEach((card) => {
       card.addEventListener("click", () => openInspectorForDevice(card.dataset.deviceId));
@@ -1603,6 +1624,27 @@
   window.addEventListener("resize", handleViewportReflow);
   window.addEventListener("orientationchange", handleViewportReflow);
 
+  const isEmbedBoot = new URLSearchParams(window.location.search).get("embed") === "1";
+  if ($("logoutBtn")) {
+    $("logoutBtn").addEventListener("click", async () => {
+      await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+      window.location.href = "/login";
+    });
+  }
   window.ERPIcons.refresh();
-  refreshAll().catch(console.error);
+  if (!isEmbedBoot) {
+    fetch("/api/auth/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((authInfo) => {
+        if (authInfo && authInfo.authenticated === false) {
+          const next = encodeURIComponent(window.location.pathname + window.location.search);
+          window.location.href = `/login?next=${next}`;
+          return;
+        }
+        refreshAll().catch(console.error);
+      })
+      .catch(() => refreshAll().catch(console.error));
+  } else {
+    refreshAll().catch(console.error);
+  }
 })();

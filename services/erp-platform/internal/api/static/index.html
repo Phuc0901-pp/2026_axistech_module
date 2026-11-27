@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>AxisTech ISO ERP — Enterprise AgTech Telemetry &amp; Operations</title>
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <title>Module Axistech — ISO AgTech Telemetry &amp; Operations</title>
+  <link rel="icon" type="image/png" href="/img/logo.png" />
+  <link rel="apple-touch-icon" href="/img/logo.png" />
   <link rel="stylesheet" href="/vendor/leaflet.min.css" />
   <link rel="stylesheet" href="/css/tokens.css" />
   <link rel="stylesheet" href="/css/app.css" />
@@ -15,9 +16,9 @@
     <div class="ux u417">
       <aside class="u417-sb" aria-label="Sidebar">
         <div class="u417-hd">
-          <span class="u417-mk" aria-hidden="true"><i data-lucide="radar"></i></span>
+          <span class="u417-mk" aria-hidden="true"><img src="/img/logo.png" alt="Module Axistech" class="u417-logo-img" /></span>
           <div class="u417-brand-copy u417-lb">
-            <b>AxisTech ERP</b>
+            <b>Module Axistech</b>
             <span class="u417-sub">ISA-101 · ISO 42010 / 27001</span>
           </div>
         </div>
@@ -40,6 +41,9 @@
         <div class="u417-ft">
           <div class="iso-pill"><i data-lucide="lock" aria-hidden="true"></i><span class="u417-lb">Read-Only Live Sync</span></div>
           <div id="syncMeta" class="tabular-nums u417-lb">Syncs: 0 | Bridge: INIT</div>
+          <button id="logoutBtn" type="button" class="u417-it u417-logout" title="Đăng xuất tài khoản">
+            <i data-lucide="log-out" aria-hidden="true"></i><span class="u417-lb">Đăng xuất</span>
+          </button>
         </div>
 
         <button class="u417-tg" type="button" aria-expanded="true" aria-label="Collapse sidebar">

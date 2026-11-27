@@ -491,7 +491,28 @@ window.ERPCharts = (() => {
       return;
     }
 
-    containerEl.innerHTML = validSpecs.map((sp, idx) => {
+    const isCompactViewport = window.innerWidth <= 1024;
+    const showAll = !isCompactViewport || containerEl.dataset.viewMode === "all" || validSpecs.length <= 1;
+    let focusIdx = Number(containerEl.dataset.focusIdx || 0);
+    if (!isFinite(focusIdx) || focusIdx < 0 || focusIdx >= validSpecs.length) focusIdx = 0;
+    containerEl.dataset.focusIdx = String(focusIdx);
+
+    const visibleItems = showAll
+      ? validSpecs.map((sp, idx) => ({ sp, idx }))
+      : [{ sp: validSpecs[focusIdx], idx: focusIdx }];
+
+    const focusBarHtml = isCompactViewport && validSpecs.length > 1
+      ? `<div class="focus-chart-bar">
+          <div class="focus-chart-pills">
+            ${validSpecs.map((sp, idx) => `
+              <button type="button" class="focus-chart-pill ${!showAll && idx === focusIdx ? "active" : ""}" data-focus-idx="${idx}">${sp.title}</button>
+            `).join("")}
+          </div>
+          <button type="button" class="focus-toggle-btn" data-toggle-all="1">${showAll ? "Thu gọn (1 đồ thị)" : `Xem tất cả (${validSpecs.length})`}</button>
+        </div>`
+      : "";
+
+    containerEl.innerHTML = focusBarHtml + visibleItems.map(({ sp, idx }) => {
       const allVals = [];
       let totalPts = 0;
       let latestStr = "-";
@@ -539,11 +560,28 @@ window.ERPCharts = (() => {
       </div>`;
     }).join("");
 
-    validSpecs.forEach((sp, idx) => {
+    visibleItems.forEach(({ sp, idx }) => {
       const cv = document.getElementById(`${containerEl.id}_cv_${idx}`);
       const tt = document.getElementById(`${containerEl.id}_tt_${idx}`);
       renderRealtimeSeries(cv, tt, { series: sp.series, height: 195, chartType: sp.chartType || "line", emptyText: sp.emptyText });
     });
+
+    if (isCompactViewport && validSpecs.length > 1) {
+      containerEl.querySelectorAll("[data-focus-idx]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          containerEl.dataset.viewMode = "focus";
+          containerEl.dataset.focusIdx = btn.dataset.focusIdx;
+          renderComponentChartsGrid(containerEl, validSpecs);
+        });
+      });
+      const toggleBtn = containerEl.querySelector("[data-toggle-all]");
+      if (toggleBtn) {
+        toggleBtn.addEventListener("click", () => {
+          containerEl.dataset.viewMode = showAll ? "focus" : "all";
+          renderComponentChartsGrid(containerEl, validSpecs);
+        });
+      }
+    }
     if (window.ERPIcons) window.ERPIcons.refresh(containerEl);
   }
 
