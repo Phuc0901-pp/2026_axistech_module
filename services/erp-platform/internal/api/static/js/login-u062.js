@@ -91,8 +91,14 @@
           go.setAttribute("aria-label", "Đăng nhập thành công");
           if (welcomeTitle) welcomeTitle.textContent = `Xin chào, ${data.user?.display_name || "Admin"}`;
           if (welcomeSub) {
+            const fmtVnLogin = (raw) => {
+              const d = new Date(raw);
+              if (isNaN(d.getTime())) return String(raw).replace("T", " ").slice(0, 19);
+              const vn = new Date(d.getTime() + 7 * 60 * 60 * 1000);
+              return vn.toISOString().replace("T", " ").slice(0, 19);
+            };
             welcomeSub.textContent = data.user?.last_login_utc
-              ? `Lần trước: ${String(data.user.last_login_utc).replace("T", " ").slice(0, 19)} UTC`
+              ? `Lần trước: ${fmtVnLogin(data.user.last_login_utc)} UTC+7`
               : `${data.user?.email || ""} · ${data.user?.role || "ADMIN"}`;
           }
           timer = setTimeout(() => {

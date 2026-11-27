@@ -315,3 +315,66 @@ window.ERPIcons = (() => {
     refresh,
   };
 })();
+
+window.ERPTime = (() => {
+  const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
+  const pad = (n) => String(n).padStart(2, "0");
+
+  function parseToDate(raw) {
+    if (raw == null || raw === "") return null;
+    if (raw instanceof Date) return isNaN(raw.getTime()) ? null : raw;
+    if (typeof raw === "number") {
+      const d = new Date(raw);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    let s = String(raw).trim();
+    if (!s || s === "NO_DATA" || s === "-") return null;
+    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(s)) s = s.replace(" ", "T");
+    // Treat naive ISO timestamps (no Z or +/-HH:MM offset) as UTC
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s) && !/(Z|[+-]\d{2}:?\d{2})$/i.test(s)) {
+      s += "Z";
+    }
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  function toVnParts(raw) {
+    const d = parseToDate(raw);
+    if (!d) return null;
+    const vn = new Date(d.getTime() + VN_OFFSET_MS);
+    return {
+      y: vn.getUTCFullYear(),
+      mo: pad(vn.getUTCMonth() + 1),
+      d: pad(vn.getUTCDate()),
+      h: pad(vn.getUTCHours()),
+      mi: pad(vn.getUTCMinutes()),
+      s: pad(vn.getUTCSeconds()),
+    };
+  }
+
+  function formatDateTime(raw, fallback = "-") {
+    const p = toVnParts(raw);
+    return p ? `${p.y}-${p.mo}-${p.d} ${p.h}:${p.mi}:${p.s}` : fallback;
+  }
+
+  function formatShortDateTime(raw, fallback = "-") {
+    const p = toVnParts(raw);
+    return p ? `${p.mo}-${p.d} ${p.h}:${p.mi}` : fallback;
+  }
+
+  function formatTime(raw, fallback = "-") {
+    const p = toVnParts(raw);
+    return p ? `${p.h}:${p.mi}:${p.s}` : fallback;
+  }
+
+  function formatHHMM(raw, fallback = "-") {
+    const p = toVnParts(raw);
+    return p ? `${p.h}:${p.mi}` : fallback;
+  }
+
+  function nowTime() {
+    return formatTime(new Date(), "00:00:00");
+  }
+
+  return { VN_OFFSET_MS, parseToDate, formatDateTime, formatShortDateTime, formatTime, formatHHMM, nowTime };
+})();

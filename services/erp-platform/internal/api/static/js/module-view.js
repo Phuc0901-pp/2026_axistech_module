@@ -161,7 +161,7 @@
     const metricMeta = window.ERPIcons.getMetricMeta(metricName);
     const metricUnit = chart.unit || "";
     const pts = (chart.points || []).map((p) => ({
-      t: String(p.t || "").slice(5, 16).replace("T", " "),
+      t: window.ERPTime.formatShortDateTime(p.t, String(p.t || "")),
       v: Number(p.v),
     }));
     const vals = pts.map((p) => p.v).filter((n) => isFinite(n));
@@ -183,12 +183,12 @@
 
     const tbl = d.table || { total: 0, page: 1, rows: [] };
     renderPagination(tbl.total || 0, tbl.page || state.page);
-    $("standaloneTableHead").innerHTML = `<tr><th>Thời gian (UTC)</th><th>Thông số</th><th>Độ sâu</th><th>Giá trị</th><th>Đơn vị</th><th>Nguồn</th></tr>`;
+    $("standaloneTableHead").innerHTML = `<tr><th>Thời gian (UTC+7)</th><th>Thông số</th><th>Độ sâu</th><th>Giá trị</th><th>Đơn vị</th><th>Nguồn</th></tr>`;
     $("standaloneTableBody").innerHTML = (tbl.rows || []).map((r) => {
       const rm = window.ERPIcons.getMetricMeta(r.metric, r.depth_level);
       return `
       <tr>
-        <td>${String(r.timestamp_utc || "").replace("T", " ").slice(0, 19)}</td>
+        <td>${window.ERPTime.formatDateTime(r.timestamp_utc, "-")}</td>
         <td title="${rm.tooltip}">${rm.label}</td>
         <td>${r.depth_level ? `${r.depth_level * 10} cm` : "-"}</td>
         <td><strong>${r.value != null ? Number(r.value).toFixed(2) : "-"}</strong></td>
@@ -218,7 +218,7 @@
     const lon = Number(loc.longitude);
     const gpsText = (isFinite(lat) && isFinite(lon)) ? `GPS: ${lat.toFixed(5)}, ${lon.toFixed(5)}` : "GPS: N/A";
     const elevStr = loc.elevation != null ? ` · Elev: ${loc.elevation}m` : "";
-    $("standaloneSubtitle").textContent = `${gpsText}${elevStr} · TZ: ${loc.time_zone || "UTC"}`;
+    $("standaloneSubtitle").textContent = `${gpsText}${elevStr} · TZ: UTC+7 (VN)`;
 
     if (!state.metric) state.metric = "temperature";
     $("standaloneMetricPills").innerHTML = FORECAST_METRICS.map((fm) => `
@@ -243,7 +243,7 @@
     const fm = FORECAST_METRICS.find((x) => x.key === state.metric) || FORECAST_METRICS[0];
     const chart = d.chart || {};
     const pts = (chart.points || []).slice(0, 36).map((p) => ({
-      t: String(p.t || "").slice(11, 16),
+      t: window.ERPTime.formatHHMM(p.t, ""),
       v: Number(p.v),
     }));
     const vals = (chart.points || []).map((p) => Number(p.v)).filter((n) => isFinite(n));
@@ -265,10 +265,10 @@
 
     const tbl = d.table || { total: 0, page: 1, rows: [] };
     renderPagination(tbl.total || 0, tbl.page || state.page);
-    $("standaloneTableHead").innerHTML = `<tr><th>Thời gian</th><th title="Trạng thái thời tiết tổng hợp">Thời tiết</th><th title="${fm.tooltip}">${fm.title}</th><th>Đơn vị</th><th title="Lượng mưa trong 1 giờ">Lượng mưa (1 giờ)</th><th title="Tốc độ gió trung bình">Tốc độ gió TB</th></tr>`;
+    $("standaloneTableHead").innerHTML = `<tr><th>Thời gian (UTC+7)</th><th title="Trạng thái thời tiết tổng hợp">Thời tiết</th><th title="${fm.tooltip}">${fm.title}</th><th>Đơn vị</th><th title="Lượng mưa trong 1 giờ">Lượng mưa (1 giờ)</th><th title="Tốc độ gió trung bình">Tốc độ gió TB</th></tr>`;
     $("standaloneTableBody").innerHTML = (tbl.rows || []).map((r) => `
       <tr>
-        <td>${(r.time_local || r.time_utc || "").replace("T", " ").slice(5, 16)}</td>
+        <td>${window.ERPTime.formatShortDateTime(r.time_utc || r.time_local, "-")}</td>
         <td>${window.ERPIcons.weatherSymbolBadgeHtml(r.symbol)}</td>
         <td><strong>${r.value != null ? Number(r.value).toFixed(1) : "-"}</strong></td>
         <td>${r.unit || fm.unit}</td>
@@ -308,7 +308,7 @@
       if (state.mode === "devices") renderDeviceView(data);
       else renderForecastView(data);
 
-      $("standaloneUpdatedAt").textContent = `${new Date().toISOString().slice(11, 19)} UTC`;
+      $("standaloneUpdatedAt").textContent = `${window.ERPTime.nowTime()} UTC+7`;
       window.ERPIcons.refresh();
     } catch (err) {
       $("standaloneError").textContent = `Module Security / Sync Error: ${err.message}`;

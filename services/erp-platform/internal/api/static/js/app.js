@@ -151,7 +151,7 @@
     if (!state.seriesHistory[deviceId]) state.seriesHistory[deviceId] = {};
     if (!state.seriesHistory[deviceId][key]) state.seriesHistory[deviceId][key] = [];
     const buf = state.seriesHistory[deviceId][key];
-    const tStr = String(timeLabel || new Date().toISOString().slice(11, 19));
+    const tStr = String(timeLabel || window.ERPTime.nowTime());
     const prev = buf[buf.length - 1];
     if (prev && prev.t === tStr && Math.abs(prev.v - num) < 1e-6) return;
     buf.push({ t: tStr, v: num, label, unit: unit || "" });
@@ -221,8 +221,8 @@
 
   function recordDeviceSnapshotSeries(snap, exchangeRows = []) {
     if (!snap || !snap.device_id) return;
-    const nowTag = new Date().toISOString().slice(11, 19);
-    const baseTime = snap.latest_timestamp_utc ? String(snap.latest_timestamp_utc).slice(11, 19) || nowTag : nowTag;
+    const nowTag = window.ERPTime.nowTime();
+    const baseTime = window.ERPTime.formatTime(snap.latest_timestamp_utc, nowTag);
 
     // Seed ALL 15 numeric Weather Exchange columns when buffer is not yet populated with historical rows
     const existingBuf = state.seriesHistory[snap.device_id];
@@ -231,7 +231,7 @@
     if (needsExchangeSeed) {
       const ordered = [...exchangeRows].reverse().slice(-32);
       ordered.forEach((row) => {
-        const t = String(row.time || "").slice(11, 16) || nowTag;
+        const t = window.ERPTime.formatHHMM(row.time, nowTag);
         EXCHANGE_COLUMN_SPECS.forEach((sp) => {
           if (row[sp.col] != null) pushSeriesPoint(snap.device_id, sp.key, sp.title, sp.unit, t, row[sp.col]);
         });
@@ -262,7 +262,7 @@
         ? `${r.metric} ${r.depth_level * 10}cm`
         : (SINGLE_METRIC_META[r.metric]?.title || r.metric);
       const rawTs = String(r.timestamp_utc || "");
-      const timeLabel = rawTs.length >= 16 ? rawTs.slice(5, 16).replace("T", " ") : rawTs;
+      const timeLabel = window.ERPTime.formatShortDateTime(r.timestamp_utc, rawTs);
       pushSeriesPoint(r.device_id, key, lbl, r.unit || "", timeLabel, r.value);
     });
   }
@@ -629,7 +629,7 @@
               <span class="badge badge-ok tabular-nums">${readings.length} channels</span>
             </div>
             <div class="mono" style="color:var(--muted)">
-              Vendor: ${activeCtx.vendorName} · ID: ${dev.external_id} · Battery: ${meta.battery_level != null ? meta.battery_level + "%" : "-"} · Signal: ${rssiHtml} · UTC: ${snap?.latest_timestamp_utc || "NO_DATA"}
+              Vendor: ${activeCtx.vendorName} · ID: ${dev.external_id} · Battery: ${meta.battery_level != null ? meta.battery_level + "%" : "-"} · Signal: ${rssiHtml} · UTC+7: ${window.ERPTime.formatDateTime(snap?.latest_timestamp_utc, "NO_DATA")}
             </div>
           </div>
         </div>
@@ -709,7 +709,7 @@
     $("detailAlertsBox").innerHTML = devAlerts.map((a) => `
       <div class="stack-item">
         <div><strong>${a.policy_name || "Alert"}</strong> · <span class="kpi-sub">${a.rule_description}</span></div>
-        <span class="tabular-nums kpi-sub">${a.triggered_at_utc || ""}</span>
+        <span class="tabular-nums kpi-sub">${window.ERPTime.formatDateTime(a.triggered_at_utc, "")}</span>
       </div>
     `).join("");
   }
@@ -792,7 +792,7 @@
       const sig = s.metadata?.signal_strength_dbm != null
         ? `${window.ERPInspector.rssiBarsHtml(s.metadata.signal_strength_dbm)} ${s.metadata.signal_strength_dbm} dBm`
         : "-";
-      const ts = s.latest_timestamp_utc || "NO_DATA";
+      const ts = window.ERPTime.formatDateTime(s.latest_timestamp_utc, "NO_DATA");
       return `<tr class="clickable-row" data-device-id="${dev.id}">
         <td><div style="display:flex;align-items:center;gap:9px;"><span class="icon-avatar" style="width:32px;height:32px;">${window.ERPIcons.deviceIconHtml(dev.source_code, 16)}</span><strong>${dev.name}</strong></div></td>
         <td><code>${dev.external_id}</code></td><td>${dev.source_code}</td><td>${dev.comm_type || "-"}</td>
@@ -870,7 +870,7 @@
     $("metStatusBadge").className = `badge ${met.status === "CONNECTED" ? "badge-ok" : "badge-warn"}`;
     $("metStatusBadge").textContent = met.status;
     $("metLocationMeta").textContent = met.location
-      ? `${met.location.name || "Project Location"} · TZ: ${met.location.time_zone || "UTC"} · Updated: ${met.updated_at_utc || "-"}`
+      ? `${met.location.name || "Project Location"} · TZ: UTC+7 (VN) · Updated: ${window.ERPTime.formatDateTime(met.updated_at_utc, "-")}`
       : "No MET Norway forecast location metadata";
 
     const steps = met.steps || [];
@@ -900,7 +900,7 @@
 
     $("forecastStepsBody").innerHTML = steps.slice(0, 24).map((s) => `
       <tr class="tabular-nums">
-        <td>${s.time_utc}</td><td>${f(s.temperature)}</td><td>${f(s.feels_like)}</td><td>${f(s.humidity)}</td>
+        <td>${window.ERPTime.formatDateTime(s.time_utc || s.time_local, "-")}</td><td>${f(s.temperature)}</td><td>${f(s.feels_like)}</td><td>${f(s.humidity)}</td>
         <td>${f(s.pressure)}</td><td>${f(s.wind_speed)}</td><td>${f(s.precipitation_1h)}</td>
         <td>${f(s.cloud_cover)}</td><td>${f(s.uv_index)}</td><td>${window.ERPIcons.weatherSymbolBadgeHtml(s.symbol)}</td>
       </tr>
@@ -912,9 +912,7 @@
     const curSymbolHtml = cur ? window.ERPIcons.weatherSymbolBadgeHtml(cur.symbol) : "";
     if ($("forecastSymbolStrip")) {
       $("forecastSymbolStrip").innerHTML = fcSteps.slice(0, 10).map((s) => {
-        const hhmm = s.time_local
-          ? `${String(s.time_local).slice(11, 16)}`
-          : `${String(s.time_utc || "").slice(11, 16) || "-"} UTC`;
+        const hhmm = window.ERPTime.formatHHMM(s.time_utc || s.time_local, "-");
         const symMeta = window.ERPIcons.getWeatherSymbolMeta(s.symbol);
         return `<div class="forecast-hour-chip" style="border-top:2px solid ${symMeta.color};">
           <div class="forecast-hour-time">${hhmm}</div>
@@ -932,7 +930,7 @@
         ? `<span class="badge badge-warn">High UV</span>`
         : `<span class="badge badge-ok">Low / Moderate UV</span>`;
 
-    const fcPts = (fn) => fcSteps.filter((s) => fn(s) != null).map((s) => ({ t: String(s.time_local || s.time_utc || "").slice(11, 16), v: Number(fn(s)) }));
+    const fcPts = (fn) => fcSteps.filter((s) => fn(s) != null).map((s) => ({ t: window.ERPTime.formatHHMM(s.time_utc || s.time_local, ""), v: Number(fn(s)) }));
     const tempSeries = [
       { label: "Nhiệt độ không khí", unit: "°C", color: "#38bdf8", points: fcPts((s) => s.temperature) },
       { label: "Nhiệt độ cảm nhận", unit: "°C", color: "#f59e0b", points: fcPts((s) => s.feels_like) },
@@ -1014,7 +1012,7 @@
     $("janesStatusBadge").className = `badge ${janes.status === "CONNECTED" ? "badge-ok" : "badge-warn"}`;
     $("janesStatusBadge").textContent = janes.status;
     $("janesBody").innerHTML = janes.status === "CONNECTED"
-      ? (janes.spray_windows || []).map((w) => `<div class="stack-item"><span>${w.start_utc} &rarr; ${w.end_utc}</span>${badge(w.quality || "IDEAL")}</div>`).join("") || '<div class="kpi-sub">Connected — no spray windows returned.</div>'
+      ? (janes.spray_windows || []).map((w) => `<div class="stack-item"><span>${window.ERPTime.formatDateTime(w.start_utc)} &rarr; ${window.ERPTime.formatDateTime(w.end_utc)}</span>${badge(w.quality || "IDEAL")}</div>`).join("") || '<div class="kpi-sub">Connected — no spray windows returned.</div>'
       : `<div class="stack-item"><span>Jane's Weather provider is not connected on this project in AxisStream HQ.</span><span class="badge badge-warn">DISCONNECTED</span></div>`;
   }
 
@@ -1199,7 +1197,7 @@
       state.apiModulePage = safePage;
       const pageRows = reversedPts.slice((safePage - 1) * API_MODULE_PAGE_SIZE, safePage * API_MODULE_PAGE_SIZE);
 
-      $("apiModuleTableHead").innerHTML = `<tr><th>Thời gian</th><th>Thiết bị</th><th>Thông số</th><th>Giá trị</th><th>Đơn vị</th><th>Nguồn</th></tr>`;
+      $("apiModuleTableHead").innerHTML = `<tr><th>Thời gian (UTC+7)</th><th>Thiết bị</th><th>Thông số</th><th>Giá trị</th><th>Đơn vị</th><th>Nguồn</th></tr>`;
       $("apiModuleTableBody").innerHTML = pageRows.map((pt) => `
         <tr>
           <td>${pt.t}</td>
@@ -1251,7 +1249,7 @@
       const fcPoints = steps
         .filter((s) => fm.pick(s) != null)
         .map((s) => ({
-          t: s.time_local ? String(s.time_local).replace("T", " ").slice(5, 16) : String(s.time_utc || "").slice(5, 16),
+          t: window.ERPTime.formatShortDateTime(s.time_utc || s.time_local, ""),
           v: Number(fm.pick(s)),
           step: s,
         }));
@@ -1285,7 +1283,7 @@
       state.apiModulePage = safePage;
       const pageRows = fcPoints.slice((safePage - 1) * API_MODULE_PAGE_SIZE, safePage * API_MODULE_PAGE_SIZE);
 
-      $("apiModuleTableHead").innerHTML = `<tr><th>Thời gian</th><th title="Trạng thái thời tiết tổng hợp">Thời tiết</th><th title="${fm.tooltip}">${fm.title}</th><th>Đơn vị</th><th title="Lượng mưa trong 1 giờ">Lượng mưa (1 giờ)</th><th title="Tốc độ gió trung bình">Tốc độ gió TB</th></tr>`;
+      $("apiModuleTableHead").innerHTML = `<tr><th>Thời gian (UTC+7)</th><th title="Trạng thái thời tiết tổng hợp">Thời tiết</th><th title="${fm.tooltip}">${fm.title}</th><th>Đơn vị</th><th title="Lượng mưa trong 1 giờ">Lượng mưa (1 giờ)</th><th title="Tốc độ gió trung bình">Tốc độ gió TB</th></tr>`;
       $("apiModuleTableBody").innerHTML = pageRows.map((pt) => {
         const st = pt.step;
         const rainStr = st.precipitation_1h != null ? `${Number(st.precipitation_1h).toFixed(1)} mm` : "-";
@@ -1346,7 +1344,7 @@
     const alertSlice = (history || []).slice((safeAlertPage - 1) * PAGE_SIZE, safeAlertPage * PAGE_SIZE);
     $("alertHistoryBody").innerHTML = alertSlice.map((h) => `
       <tr>
-        <td class="tabular-nums">${h.triggered_at_utc || "-"}</td><td>${h.policy_name}</td><td>${h.device_name || "-"}</td>
+        <td class="tabular-nums">${window.ERPTime.formatDateTime(h.triggered_at_utc, "-")}</td><td>${h.policy_name}</td><td>${h.device_name || "-"}</td>
         <td>${h.rule_description}</td><td>${badge(h.delivery_status)}</td><td class="tabular-nums">${h.notification_count}</td>
       </tr>
     `).join("") || '<tr><td colspan="6">No alert history</td></tr>';
@@ -1386,7 +1384,7 @@
     const auditSlice = (entries || []).slice((safeAuditPage - 1) * PAGE_SIZE, safeAuditPage * PAGE_SIZE);
     $("auditBody").innerHTML = auditSlice.map((e) => `
       <tr>
-        <td class="tabular-nums">${e.timestamp_utc}</td><td>${e.actor}</td><td><strong>${e.action}</strong></td>
+        <td class="tabular-nums">${window.ERPTime.formatDateTime(e.timestamp_utc, "-")}</td><td>${e.actor}</td><td><strong>${e.action}</strong></td>
         <td>${e.resource_type}:${e.resource_id}</td><td><code>${(e.correlation_id || "").slice(0, 12)}</code></td>
         <td><code title="${e.entry_hash || ""}">${e.entry_hash ? e.entry_hash.slice(0, 12) + "…" : "-"}</code></td>
         <td>${e.details}</td>

@@ -1090,3 +1090,41 @@ func TestGUT063_UIGuardRightClickAndDevToolsShortcutLock(t *testing.T) {
 		}
 	}
 }
+
+func TestGUT064_VietnamUTCPlus7DisplayConversion(t *testing.T) {
+	router, _ := setupTestRouter(t)
+
+	iconsRec := httptest.NewRecorder()
+	router.ServeHTTP(iconsRec, httptest.NewRequest(http.MethodGet, "/js/icons.js", nil))
+	if iconsRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for /js/icons.js, got %d", iconsRec.Code)
+	}
+	if !strings.Contains(iconsRec.Body.String(), "window.ERPTime") || !strings.Contains(iconsRec.Body.String(), "VN_OFFSET_MS") {
+		t.Fatal("icons.js missing window.ERPTime / VN_OFFSET_MS")
+	}
+
+	checks := []struct {
+		path   string
+		tokens []string
+	}{
+		{"/", []string{"UTC+7 (VN)", "Last Reported (UTC+7)", "Time (UTC+7)", "Timestamp (UTC+7)"}},
+		{"/tbsgagtech/v1/modules/devices/demo", []string{"UTC+7"}},
+		{"/js/app.js", []string{"ERPTime.formatDateTime", "UTC+7"}},
+		{"/js/module-view.js", []string{"ERPTime.formatDateTime", "UTC+7"}},
+		{"/js/charts.js", []string{"ERPTime.formatDateTime", "UTC+7"}},
+		{"/js/login-u062.js", []string{"fmtVnLogin", "UTC+7"}},
+	}
+	for _, tc := range checks {
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, tc.path, nil))
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200 for %s, got %d", tc.path, rec.Code)
+		}
+		body := rec.Body.String()
+		for _, tok := range tc.tokens {
+			if !strings.Contains(body, tok) {
+				t.Fatalf("%s missing UTC+7 token %q", tc.path, tok)
+			}
+		}
+	}
+}

@@ -105,7 +105,7 @@ window.ERPCharts = (() => {
       if (bestDist > 36) { tooltip.style.display = "none"; return; }
       const st = best.s;
       tooltip.innerHTML = `
-        <strong>${st.time_local || st.time_utc}</strong><br>
+        <strong>${window.ERPTime ? window.ERPTime.formatDateTime(st.time_utc || st.time_local, "-") : (st.time_local || st.time_utc)} (UTC+7)</strong><br>
         Temp: <b>${Number(st.temperature).toFixed(1)}°C</b> (Feels ${st.feels_like != null ? Number(st.feels_like).toFixed(1) : "-"}°C)<br>
         Rain: <b>${Number(st.precipitation_1h ?? st.precipitation_6h ?? 0).toFixed(1)} mm</b> · RH: ${st.humidity ?? "-"}%
       `;
