@@ -684,6 +684,61 @@ func TestGUT055_StandaloneIsolationAndAdminRoutesIntact(t *testing.T) {
 	}
 }
 
+func TestGUT056_VietnameseMetricLocalizationAndTooltips(t *testing.T) {
+	router, _ := setupTestRouter(t)
+
+	iconsRec := httptest.NewRecorder()
+	router.ServeHTTP(iconsRec, httptest.NewRequest(http.MethodGet, "/js/icons.js", nil))
+	if iconsRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for icons.js, got %d", iconsRec.Code)
+	}
+	iconsBody := iconsRec.Body.String()
+	requiredDictTokens := []string{
+		"getMetricMeta",
+		"Nhiệt độ không khí",
+		"Nhiệt độ môi trường không khí",
+		"Áp suất khí quyển",
+		"Áp suất khí quyển tại trạm",
+		"Áp suất mực nước biển",
+		"Độ ẩm tương đối",
+		"Chỉ số Delta-T (Bốc hơi)",
+		"Điểm sương",
+		"Tốc độ gió TB",
+		"Gió giật",
+		"Hướng gió",
+		"Bức xạ mặt trời",
+		"Chỉ số UV",
+		"Lượng mưa tích lũy",
+		"Lượng mưa 24 giờ qua",
+		"Mức pin",
+		"Cường độ tín hiệu (RSSI)",
+	}
+	for _, tok := range requiredDictTokens {
+		if !strings.Contains(iconsBody, tok) {
+			t.Fatalf("icons.js missing standardized Vietnamese metric/tooltip %q", tok)
+		}
+	}
+
+	for _, jsPath := range []string{"/js/module-view.js", "/js/app.js", "/js/inspector.js"} {
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, jsPath, nil))
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200 for %s, got %d", jsPath, rec.Code)
+		}
+		if !strings.Contains(rec.Body.String(), "getMetricMeta") {
+			t.Fatalf("%s must use window.ERPIcons.getMetricMeta for standardized metric labels & tooltips", jsPath)
+		}
+	}
+
+	modJsRec := httptest.NewRecorder()
+	router.ServeHTTP(modJsRec, httptest.NewRequest(http.MethodGet, "/js/module-view.js", nil))
+	for _, fcTok := range []string{"Nhiệt độ cảm nhận", "Lượng mưa (1 giờ)", "Độ che phủ mây"} {
+		if !strings.Contains(modJsRec.Body.String(), fcTok) {
+			t.Fatalf("module-view.js missing Vietnamese forecast metric label %q", fcTok)
+		}
+	}
+}
+
 func TestGUT045_RateLimiterAndRequireAPIKeyMutationGuard(t *testing.T) {
 	store, _ := repository.NewStore("")
 	hub := realtime.NewHub(8)

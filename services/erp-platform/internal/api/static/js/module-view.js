@@ -4,15 +4,15 @@
   const AUTO_POLL_MS = 15000;
 
   const FORECAST_METRICS = [
-    { key: "temperature", title: "Air Temperature", unit: "°C", color: "#38bdf8", chartType: "line" },
-    { key: "feels_like", title: "Feels Like Temperature", unit: "°C", color: "#f59e0b", chartType: "line" },
-    { key: "dew_point", title: "Dew Point", unit: "°C", color: "#22c55e", chartType: "line" },
-    { key: "precipitation_1h", title: "Hourly Precipitation", unit: "mm", color: "#0ea5e9", chartType: "bar" },
-    { key: "humidity", title: "Relative Humidity", unit: "%", color: "#14b8a6", chartType: "line" },
-    { key: "wind_speed", title: "Wind Speed", unit: "km/h", color: "#a78bfa", chartType: "line" },
-    { key: "pressure", title: "Atmospheric Pressure", unit: "hPa", color: "#60a5fa", chartType: "line" },
-    { key: "cloud_cover", title: "Cloud Cover", unit: "%", color: "#94a3b8", chartType: "line" },
-    { key: "uv_index", title: "UV Index", unit: "UV", color: "#facc15", chartType: "line" },
+    { key: "temperature", title: "Nhiệt độ không khí", tooltip: "Nhiệt độ môi trường không khí", unit: "°C", color: "#38bdf8", chartType: "line" },
+    { key: "feels_like", title: "Nhiệt độ cảm nhận", tooltip: "Nhiệt độ cảm nhận thực tế", unit: "°C", color: "#f59e0b", chartType: "line" },
+    { key: "dew_point", title: "Điểm sương", tooltip: "Nhiệt độ điểm sương", unit: "°C", color: "#22c55e", chartType: "line" },
+    { key: "precipitation_1h", title: "Lượng mưa (1 giờ)", tooltip: "Lượng mưa trong 1 giờ", unit: "mm", color: "#0ea5e9", chartType: "bar" },
+    { key: "humidity", title: "Độ ẩm tương đối", tooltip: "Độ ẩm không khí tương đối", unit: "%", color: "#14b8a6", chartType: "line" },
+    { key: "wind_speed", title: "Tốc độ gió TB", tooltip: "Tốc độ gió trung bình", unit: "km/h", color: "#a78bfa", chartType: "line" },
+    { key: "pressure", title: "Áp suất khí quyển", tooltip: "Áp suất khí quyển tại trạm", unit: "hPa", color: "#60a5fa", chartType: "line" },
+    { key: "cloud_cover", title: "Độ che phủ mây", tooltip: "Tỷ lệ mây che phủ bầu trời", unit: "%", color: "#94a3b8", chartType: "line" },
+    { key: "uv_index", title: "Chỉ số UV", tooltip: "Chỉ số tia cực tím (UV)", unit: "UV", color: "#facc15", chartType: "line" },
   ];
 
   const METRIC_COLORS = {
@@ -128,9 +128,10 @@
     if (!state.metric || (metrics.length && !metrics.includes(state.metric))) {
       state.metric = d.chart?.metric || metrics[0] || "";
     }
-    $("standaloneMetricPills").innerHTML = metrics.map((m) => `
-      <button type="button" class="metric-pill ${state.metric === m ? "active" : ""}" data-metric="${m}">${m}</button>
-    `).join("") || '<span class="kpi-sub">No active telemetry metrics</span>';
+    $("standaloneMetricPills").innerHTML = metrics.map((m) => {
+      const mm = window.ERPIcons.getMetricMeta(m);
+      return `<button type="button" class="metric-pill ${state.metric === m ? "active" : ""}" data-metric="${m}" title="${mm.tooltip}">${mm.label}</button>`;
+    }).join("") || '<span class="kpi-sub">Chưa có thông số đo hoạt động</span>';
     $("standaloneMetricPills").querySelectorAll("[data-metric]").forEach((btn) => {
       btn.addEventListener("click", () => {
         state.metric = btn.dataset.metric;
@@ -139,10 +140,10 @@
       });
     });
 
-    $("standaloneMapTitle").textContent = `Device Geolocation: ${dev.name || dev.external_id || ""}`;
+    $("standaloneMapTitle").textContent = `Định vị thiết bị: ${dev.name || dev.external_id || ""}`;
     $("standaloneGeoSummary").textContent = gps
-      ? `${gpsText} · Comm: ${dev.comm_type || "IoT"}`
-      : "No fixed GPS — showing field geometry";
+      ? `${gpsText} · Truyền thông: ${dev.comm_type || "IoT"}`
+      : "Chưa có GPS cố định — hiển thị ranh giới vùng";
     const snapStatus = isOn ? "LIVE" : (pw.reason === "Disabled" ? "OFFLINE" : "NO_DATA");
     standaloneMap.render(
       {
@@ -157,6 +158,7 @@
 
     const chart = d.chart || {};
     const metricName = chart.metric || state.metric || "Telemetry";
+    const metricMeta = window.ERPIcons.getMetricMeta(metricName);
     const metricUnit = chart.unit || "";
     const pts = (chart.points || []).map((p) => ({
       t: String(p.t || "").slice(5, 16).replace("T", " "),
@@ -168,34 +170,38 @@
     const avgV = vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2) : "-";
     const latestV = vals.length ? vals[vals.length - 1].toFixed(2) : "-";
 
-    $("standaloneMetricTitle").innerHTML = `${window.ERPIcons.iconHtml("table", 16)}<span>1 Data + 1 Graph — ${metricName}</span>`;
+    $("standaloneMetricTitle").innerHTML = `${window.ERPIcons.iconHtml("table", 16)}<span title="${metricMeta.tooltip}">1 Bảng dữ liệu + 1 Đồ thị — ${metricMeta.label}</span>`;
     $("standaloneMetricStats").innerHTML = `
-      <span class="stat-pill">Latest <strong>${latestV} ${metricUnit}</strong></span>
+      <span class="stat-pill">Mới nhất <strong>${latestV} ${metricUnit}</strong></span>
       <span class="stat-pill">Min <strong>${minV}</strong></span>
-      <span class="stat-pill">Avg <strong>${avgV}</strong></span>
+      <span class="stat-pill">TB <strong>${avgV}</strong></span>
       <span class="stat-pill">Max <strong>${maxV}</strong></span>
     `;
-    $("standaloneChartHeader").textContent = `${metricName}${metricUnit ? ` (${metricUnit})` : ""}`;
+    $("standaloneChartHeader").textContent = `${metricMeta.label}${metricUnit ? ` (${metricUnit})` : ""}`;
+    $("standaloneChartHeader").title = metricMeta.tooltip;
     $("standaloneChartBadge").textContent = `${latestV} ${metricUnit}`.trim();
 
     const tbl = d.table || { total: 0, page: 1, rows: [] };
     renderPagination(tbl.total || 0, tbl.page || state.page);
-    $("standaloneTableHead").innerHTML = `<tr><th>Timestamp (UTC)</th><th>Metric</th><th>Depth</th><th>Value</th><th>Unit</th><th>Power</th></tr>`;
-    $("standaloneTableBody").innerHTML = (tbl.rows || []).map((r) => `
+    $("standaloneTableHead").innerHTML = `<tr><th>Thời gian (UTC)</th><th>Thông số</th><th>Độ sâu</th><th>Giá trị</th><th>Đơn vị</th><th>Nguồn</th></tr>`;
+    $("standaloneTableBody").innerHTML = (tbl.rows || []).map((r) => {
+      const rm = window.ERPIcons.getMetricMeta(r.metric, r.depth_level);
+      return `
       <tr>
         <td>${String(r.timestamp_utc || "").replace("T", " ").slice(0, 19)}</td>
-        <td>${r.metric}</td>
+        <td title="${rm.tooltip}">${rm.label}</td>
         <td>${r.depth_level ? `${r.depth_level * 10} cm` : "-"}</td>
         <td><strong>${r.value != null ? Number(r.value).toFixed(2) : "-"}</strong></td>
         <td>${r.unit || "-"}</td>
         <td><span class="power-pill ${isOn ? "on" : "off"}"><span class="power-dot"></span>${pw.status}</span></td>
       </tr>
-    `).join("") || '<tr><td colspan="6">No records for selected metric</td></tr>';
+    `;
+    }).join("") || '<tr><td colspan="6">Không có bản ghi cho thông số này</td></tr>';
 
     window.ERPCharts.renderRealtimeSeries($("standaloneChartCanvas"), $("standaloneChartTooltip"), {
       height: 290,
-      series: pts.length ? [{ label: metricName, unit: metricUnit, color: METRIC_COLORS[metricName] || "#38bdf8", points: pts }] : [],
-      emptyText: "Waiting for telemetry samples...",
+      series: pts.length ? [{ label: metricMeta.label, unit: metricUnit, color: METRIC_COLORS[metricName] || "#38bdf8", points: pts }] : [],
+      emptyText: "Đang chờ dữ liệu cảm biến...",
     });
   }
 
@@ -216,7 +222,7 @@
 
     if (!state.metric) state.metric = "temperature";
     $("standaloneMetricPills").innerHTML = FORECAST_METRICS.map((fm) => `
-      <button type="button" class="metric-pill ${state.metric === fm.key ? "active" : ""}" data-fc-metric="${fm.key}">${fm.title}</button>
+      <button type="button" class="metric-pill ${state.metric === fm.key ? "active" : ""}" data-fc-metric="${fm.key}" title="${fm.tooltip}">${fm.title}</button>
     `).join("");
     $("standaloneMetricPills").querySelectorAll("[data-fc-metric]").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -226,8 +232,8 @@
       });
     });
 
-    $("standaloneMapTitle").textContent = `Forecast Target Location: ${loc.name || ""}`;
-    $("standaloneGeoSummary").textContent = `${gpsText}${elevStr} · MET Norway Forecast`;
+    $("standaloneMapTitle").textContent = `Định vị điểm dự báo: ${loc.name || ""}`;
+    $("standaloneGeoSummary").textContent = `${gpsText}${elevStr} · Dự báo MET Norway`;
     standaloneMap.renderForecastLocation(
       { ...loc, source: "MET Norway (AxisStream)" },
       cur,
@@ -246,19 +252,20 @@
     const avgV = vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : "-";
     const nowV = vals.length ? vals[0].toFixed(1) : "-";
 
-    $("standaloneMetricTitle").innerHTML = `${window.ERPIcons.iconHtml("cloud-sun-rain", 16)}<span>1 Data + 1 Graph — ${fm.title}</span>`;
+    $("standaloneMetricTitle").innerHTML = `${window.ERPIcons.iconHtml("cloud-sun-rain", 16)}<span title="${fm.tooltip}">1 Bảng dữ liệu + 1 Đồ thị — ${fm.title}</span>`;
     $("standaloneMetricStats").innerHTML = `
-      <span class="stat-pill">Now <strong>${nowV} ${chart.unit || fm.unit}</strong></span>
+      <span class="stat-pill">Hiện tại <strong>${nowV} ${chart.unit || fm.unit}</strong></span>
       <span class="stat-pill">Min <strong>${minV}</strong></span>
-      <span class="stat-pill">Avg <strong>${avgV}</strong></span>
+      <span class="stat-pill">TB <strong>${avgV}</strong></span>
       <span class="stat-pill">Max <strong>${maxV}</strong></span>
     `;
     $("standaloneChartHeader").textContent = `${fm.title} (${chart.unit || fm.unit})`;
+    $("standaloneChartHeader").title = fm.tooltip;
     $("standaloneChartBadge").textContent = `${nowV} ${chart.unit || fm.unit}`;
 
     const tbl = d.table || { total: 0, page: 1, rows: [] };
     renderPagination(tbl.total || 0, tbl.page || state.page);
-    $("standaloneTableHead").innerHTML = `<tr><th>Time</th><th>Weather Symbol</th><th>${fm.title}</th><th>Unit</th><th>Rain 1h</th><th>Wind</th></tr>`;
+    $("standaloneTableHead").innerHTML = `<tr><th>Thời gian</th><th title="Trạng thái thời tiết tổng hợp">Thời tiết</th><th title="${fm.tooltip}">${fm.title}</th><th>Đơn vị</th><th title="Lượng mưa trong 1 giờ">Lượng mưa (1 giờ)</th><th title="Tốc độ gió trung bình">Tốc độ gió TB</th></tr>`;
     $("standaloneTableBody").innerHTML = (tbl.rows || []).map((r) => `
       <tr>
         <td>${(r.time_local || r.time_utc || "").replace("T", " ").slice(5, 16)}</td>
@@ -268,13 +275,13 @@
         <td>${r.precipitation_1h != null ? `${Number(r.precipitation_1h).toFixed(1)} mm` : "-"}</td>
         <td>${r.wind_speed != null ? `${Number(r.wind_speed).toFixed(1)} km/h` : "-"}</td>
       </tr>
-    `).join("") || '<tr><td colspan="6">No forecast records available</td></tr>';
+    `).join("") || '<tr><td colspan="6">Không có dữ liệu dự báo</td></tr>';
 
     window.ERPCharts.renderRealtimeSeries($("standaloneChartCanvas"), $("standaloneChartTooltip"), {
       height: 290,
       chartType: chart.chart_type || fm.chartType,
       series: pts.length ? [{ label: fm.title, unit: chart.unit || fm.unit, color: fm.color, points: pts }] : [],
-      emptyText: "No forecast series points available...",
+      emptyText: "Chưa có dữ liệu chuỗi dự báo...",
     });
   }
 

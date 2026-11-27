@@ -58,12 +58,15 @@ window.ERPInspector = (() => {
       <div>
         <h4 style="font-size:0.86rem;margin-bottom:8px;">All Live Telemetry Readings</h4>
         <div class="metric-grid">
-          ${(snap.readings || []).map((r) => `
-            <div class="metric-box">
-              <div class="metric-name">${r.metric}${r.depth_level ? ` D${r.depth_level}` : ""}</div>
+          ${(snap.readings || []).map((r) => {
+            const mm = window.ERPIcons.getMetricMeta(r.metric, r.depth_level);
+            return `
+            <div class="metric-box" title="${mm.tooltip}">
+              <div class="metric-name">${mm.label}</div>
               <div class="metric-val tabular-nums">${r.value ?? "-"} <small>${r.unit || ""}</small></div>
             </div>
-          `).join("") || '<div class="kpi-sub">No active readings (Epoch 1970 / NO_DATA guarded)</div>'}
+          `;
+          }).join("") || '<div class="kpi-sub">No active readings (Epoch 1970 / NO_DATA guarded)</div>'}
         </div>
       </div>
 

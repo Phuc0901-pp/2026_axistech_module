@@ -159,60 +159,64 @@
   }
 
   const EXCHANGE_COLUMN_SPECS = [
-    { col: "temperature_avg", key: "temperature", title: "Air Temperature", unit: "°C", icon: "thermometer-sun", cat: "thermal", color: "#38bdf8" },
-    { col: "dewpoint_avg", key: "dew_point", title: "Dew Point", unit: "°C", icon: "thermometer", cat: "thermal", color: "#a78bfa" },
-    { col: "deltat_avg", key: "delta_t", title: "Delta-T (Evaporation)", unit: "°C", icon: "droplets", cat: "thermal", color: "#fb7185" },
-    { col: "humidity_avg", key: "humidity", title: "Relative Humidity", unit: "%", icon: "droplet", cat: "moisture", color: "#22c55e" },
-    { col: "rainfall", key: "rainfall", title: "Rainfall", unit: "mm", icon: "cloud-rain", cat: "moisture", color: "#38bdf8" },
-    { col: "rainfall_total", key: "rainfall_total", title: "Cumulative Rainfall", unit: "mm", icon: "cloud-rain-wind", cat: "moisture", color: "#14b8a6" },
-    { col: "atmos_pressure_avg", key: "atmos_pressure", title: "Atmospheric Pressure", unit: "hPa", icon: "gauge", cat: "wind_pressure", color: "#60a5fa" },
-    { col: "msl_pressure", key: "msl_pressure", title: "Mean Sea-Level Pressure", unit: "hPa", icon: "gauge", cat: "wind_pressure", color: "#818cf8" },
-    { col: "wind_speed_avg", key: "wind_speed", title: "Wind Speed Avg", unit: "km/h", icon: "wind", cat: "wind_pressure", color: "#f59e0b" },
-    { col: "wind_speed_min", key: "wind_speed_min", title: "Wind Speed Min", unit: "km/h", icon: "wind", cat: "wind_pressure", color: "#38bdf8" },
-    { col: "wind_speed_max", key: "wind_speed_max", title: "Wind Speed Max", unit: "km/h", icon: "wind", cat: "wind_pressure", color: "#ef4444" },
-    { col: "wind_dir_deg_avg", key: "wind_direction", title: "Wind Direction", unit: "°", icon: "compass", cat: "wind_pressure", color: "#14b8a6" },
-    { col: "wind_dir_var_avg", key: "wind_dir_var", title: "Wind Direction Variance", unit: "°", icon: "compass", cat: "wind_pressure", color: "#a78bfa" },
-    { col: "solar_rad_avg", key: "solar_radiation", title: "Solar Radiation", unit: "W/m²", icon: "sun", cat: "solar", color: "#facc15" },
-    { col: "uv_index_avg", key: "uv_index", title: "UV Index", unit: "UV", icon: "sun-medium", cat: "solar", color: "#fb923c" },
+    { col: "temperature_avg", key: "temperature", title: "Nhiệt độ không khí", unit: "°C", icon: "thermometer-sun", cat: "thermal", color: "#38bdf8" },
+    { col: "dewpoint_avg", key: "dew_point", title: "Điểm sương", unit: "°C", icon: "thermometer", cat: "thermal", color: "#a78bfa" },
+    { col: "deltat_avg", key: "delta_t", title: "Chỉ số Delta-T (Bốc hơi)", unit: "°C", icon: "droplets", cat: "thermal", color: "#fb7185" },
+    { col: "humidity_avg", key: "humidity", title: "Độ ẩm tương đối", unit: "%", icon: "droplet", cat: "moisture", color: "#22c55e" },
+    { col: "rainfall", key: "rainfall", title: "Lượng mưa (1 giờ)", unit: "mm", icon: "cloud-rain", cat: "moisture", color: "#38bdf8" },
+    { col: "rainfall_total", key: "rainfall_total", title: "Lượng mưa tích lũy", unit: "mm", icon: "cloud-rain-wind", cat: "moisture", color: "#14b8a6" },
+    { col: "atmos_pressure_avg", key: "atmos_pressure", title: "Áp suất khí quyển", unit: "hPa", icon: "gauge", cat: "wind_pressure", color: "#60a5fa" },
+    { col: "msl_pressure", key: "msl_pressure", title: "Áp suất mực nước biển", unit: "hPa", icon: "gauge", cat: "wind_pressure", color: "#818cf8" },
+    { col: "wind_speed_avg", key: "wind_speed", title: "Tốc độ gió TB", unit: "km/h", icon: "wind", cat: "wind_pressure", color: "#f59e0b" },
+    { col: "wind_speed_min", key: "wind_speed_min", title: "Tốc độ gió nhỏ nhất", unit: "km/h", icon: "wind", cat: "wind_pressure", color: "#38bdf8" },
+    { col: "wind_speed_max", key: "wind_speed_max", title: "Tốc độ gió lớn nhất", unit: "km/h", icon: "wind", cat: "wind_pressure", color: "#ef4444" },
+    { col: "wind_dir_deg_avg", key: "wind_direction", title: "Hướng gió", unit: "°", icon: "compass", cat: "wind_pressure", color: "#14b8a6" },
+    { col: "wind_dir_var_avg", key: "wind_dir_var", title: "Độ biến thiên hướng gió", unit: "°", icon: "compass", cat: "wind_pressure", color: "#a78bfa" },
+    { col: "solar_rad_avg", key: "solar_radiation", title: "Bức xạ mặt trời", unit: "W/m²", icon: "sun", cat: "solar", color: "#facc15" },
+    { col: "uv_index_avg", key: "uv_index", title: "Chỉ số UV", unit: "UV", icon: "sun-medium", cat: "solar", color: "#fb923c" },
   ];
 
   const CATEGORY_LABELS = {
-    ALL: "All Components",
-    thermal: "Thermal & Delta-T",
-    moisture: "Moisture & Rain",
-    wind_pressure: "Wind & Pressure",
-    solar: "Solar & UV",
-    soil: "Soil Temp / pH / EC",
-    nutrients: "Soil NPK Nutrients",
-    power: "Power & 4G Signal",
-    other: "Other Telemetry",
+    ALL: "Tất cả thông số",
+    thermal: "Nhiệt độ & Delta-T",
+    moisture: "Độ ẩm & Lượng mưa",
+    wind_pressure: "Gió & Áp suất",
+    solar: "Bức xạ & UV",
+    soil: "Nhiệt độ / pH / EC đất",
+    nutrients: "Dinh dưỡng NPK đất",
+    power: "Nguồn pin & Sóng 4G",
+    other: "Thông số khác",
   };
 
   const DEPTH_METRIC_META = {
-    temperature: { title: "Soil Temperature (3 Depths)", unit: "°C", icon: "thermometer", cat: "soil" },
-    moisture: { title: "Soil Moisture (3 Depths)", unit: "%", icon: "droplets", cat: "soil" },
-    ph: { title: "Soil pH (3 Depths)", unit: "pH", icon: "flask-conical", cat: "soil" },
-    ec: { title: "Electrical Conductivity (3 Depths)", unit: "µS/cm", icon: "zap", cat: "soil" },
-    salinity: { title: "Soil Salinity (3 Depths)", unit: "ppm", icon: "waves", cat: "soil" },
-    nitrogen: { title: "Nitrogen N (3 Depths)", unit: "mg/kg", icon: "sprout", cat: "nutrients" },
-    phosphorus: { title: "Phosphorus P (3 Depths)", unit: "mg/kg", icon: "sprout", cat: "nutrients" },
-    potassium: { title: "Potassium K (3 Depths)", unit: "mg/kg", icon: "sprout", cat: "nutrients" },
+    temperature: { title: "Nhiệt độ đất (3 độ sâu)", unit: "°C", icon: "thermometer", cat: "soil" },
+    moisture: { title: "Độ ẩm đất (3 độ sâu)", unit: "%", icon: "droplets", cat: "soil" },
+    ph: { title: "Độ pH đất (3 độ sâu)", unit: "pH", icon: "flask-conical", cat: "soil" },
+    ec: { title: "Độ dẫn điện EC (3 độ sâu)", unit: "µS/cm", icon: "zap", cat: "soil" },
+    salinity: { title: "Độ mặn đất (3 độ sâu)", unit: "ppm", icon: "waves", cat: "soil" },
+    nitrogen: { title: "Đạm N (3 độ sâu)", unit: "mg/kg", icon: "sprout", cat: "nutrients" },
+    phosphorus: { title: "Lân P (3 độ sâu)", unit: "mg/kg", icon: "sprout", cat: "nutrients" },
+    potassium: { title: "Kali K (3 độ sâu)", unit: "mg/kg", icon: "sprout", cat: "nutrients" },
   };
 
   const SINGLE_METRIC_META = Object.fromEntries([
     ...EXCHANGE_COLUMN_SPECS.map((s) => [s.key, { title: s.title, unit: s.unit, icon: s.icon, cat: s.cat, color: s.color }]),
-    ["wind_gust", { title: "Wind Gust", unit: "km/h", icon: "wind", cat: "wind_pressure", color: "#fb7185" }],
-    ["apparent_temperature_avg", { title: "Apparent Temperature", unit: "°C", icon: "thermometer-sun", cat: "thermal", color: "#f59e0b" }],
-    ["vapour_pressure_deficit", { title: "Vapour Pressure Deficit", unit: "kPa", icon: "cloud-fog", cat: "moisture", color: "#a78bfa" }],
-    ["vapour_pressure", { title: "Vapour Pressure", unit: "kPa", icon: "cloud-fog", cat: "moisture", color: "#38bdf8" }],
-    ["battery_voltage", { title: "Battery Voltage", unit: "V", icon: "battery-charging", cat: "power", color: "#22c55e" }],
-    ["solar_voltage", { title: "Solar Panel Voltage", unit: "V", icon: "sun", cat: "power", color: "#facc15" }],
-    ["battery_pct", { title: "Battery Charge", unit: "%", icon: "battery", cat: "power", color: "#22c55e" }],
-    ["signal_dbm", { title: "Signal Strength RSSI", unit: "dBm", icon: "signal", cat: "power", color: "#38bdf8" }],
-    ["csq", { title: "4G CSQ Quality", unit: "csq", icon: "radio-tower", cat: "power", color: "#a78bfa" }],
-    ["water_volume", { title: "Water Flow Volume", unit: "L", icon: "droplets", cat: "moisture", color: "#38bdf8" }],
-    ["cumulative_water", { title: "Cumulative Water", unit: "L", icon: "waves", cat: "moisture", color: "#14b8a6" }],
-    ["water_level", { title: "Water Tank Level", unit: "m", icon: "waves", cat: "moisture", color: "#38bdf8" }],
+    ["rainfall_last_24hrs", { title: "Lượng mưa 24 giờ qua", unit: "mm", icon: "cloud-rain-wind", cat: "moisture", color: "#0284c7" }],
+    ["wind_gust", { title: "Gió giật", unit: "km/h", icon: "wind", cat: "wind_pressure", color: "#fb7185" }],
+    ["apparent_temperature_avg", { title: "Nhiệt độ cảm nhận", unit: "°C", icon: "thermometer-sun", cat: "thermal", color: "#f59e0b" }],
+    ["feels_like", { title: "Nhiệt độ cảm nhận", unit: "°C", icon: "thermometer-sun", cat: "thermal", color: "#f59e0b" }],
+    ["pressure", { title: "Áp suất khí quyển", unit: "hPa", icon: "gauge", cat: "wind_pressure", color: "#60a5fa" }],
+    ["vapour_pressure_deficit", { title: "Thâm hụt áp suất hơi (VPD)", unit: "kPa", icon: "cloud-fog", cat: "moisture", color: "#a78bfa" }],
+    ["vapour_pressure", { title: "Áp suất hơi bão hòa", unit: "kPa", icon: "cloud-fog", cat: "moisture", color: "#38bdf8" }],
+    ["battery_voltage", { title: "Điện áp pin", unit: "V", icon: "battery-charging", cat: "power", color: "#22c55e" }],
+    ["solar_voltage", { title: "Điện áp pin mặt trời", unit: "V", icon: "sun", cat: "power", color: "#facc15" }],
+    ["battery_pct", { title: "Mức pin", unit: "%", icon: "battery", cat: "power", color: "#22c55e" }],
+    ["signal_strength_dbm", { title: "Cường độ tín hiệu (RSSI)", unit: "dBm", icon: "signal", cat: "power", color: "#38bdf8" }],
+    ["signal_dbm", { title: "Cường độ tín hiệu (RSSI)", unit: "dBm", icon: "signal", cat: "power", color: "#38bdf8" }],
+    ["csq", { title: "Chất lượng sóng 4G (CSQ)", unit: "csq", icon: "radio-tower", cat: "power", color: "#a78bfa" }],
+    ["water_volume", { title: "Lưu lượng nước", unit: "L", icon: "droplets", cat: "moisture", color: "#38bdf8" }],
+    ["cumulative_water", { title: "Tổng lượng nước tích lũy", unit: "L", icon: "waves", cat: "moisture", color: "#14b8a6" }],
+    ["water_level", { title: "Mực nước", unit: "m", icon: "waves", cat: "moisture", color: "#38bdf8" }],
   ]);
 
   function recordDeviceSnapshotSeries(snap, exchangeRows = []) {
@@ -239,9 +243,7 @@
     (snap.readings || []).forEach((r) => {
       if (r.value == null) return;
       const key = r.depth_level ? `${r.metric}_d${r.depth_level}` : r.metric;
-      const lbl = r.depth_level
-        ? `${r.metric} ${r.depth_level * 10}cm`
-        : (SINGLE_METRIC_META[r.metric]?.title || r.metric);
+      const lbl = window.ERPIcons.getMetricMeta(r.metric, r.depth_level).label;
       pushSeriesPoint(snap.device_id, key, lbl, r.unit || "", sampleTime, r.value);
     });
     if (snap.metadata?.battery_level != null) {
@@ -521,14 +523,14 @@
       const wColors = { wind_speed: "#f59e0b", wind_speed_min: "#38bdf8", wind_speed_max: "#ef4444", wind_gust: "#fb7185" };
       specs.push({
         id: "wind_speed_bundle",
-        title: "Wind Speed (Avg / Min / Max / Gust)",
+        title: "Tốc độ gió (TB / Nhỏ nhất / Lớn nhất / Gió giật)",
         unit: "km/h",
         icon: "wind",
         cat: "wind_pressure",
         series: windKeys.map((k) => {
           consumed.add(k);
           return {
-            label: SINGLE_METRIC_META[k]?.title || k,
+            label: SINGLE_METRIC_META[k]?.title || window.ERPIcons.getMetricMeta(k).label,
             unit: "km/h",
             color: wColors[k],
             points: devBuf[k],
@@ -542,14 +544,14 @@
     if (voltKeys.length > 1) {
       specs.push({
         id: "voltage_bundle",
-        title: "Battery & Solar Voltage",
+        title: "Điện áp pin & Tấm sạc mặt trời",
         unit: "V",
         icon: "battery-charging",
         cat: "power",
         series: voltKeys.map((k) => {
           consumed.add(k);
           return {
-            label: SINGLE_METRIC_META[k]?.title || k,
+            label: SINGLE_METRIC_META[k]?.title || window.ERPIcons.getMetricMeta(k).label,
             unit: "V",
             color: SINGLE_METRIC_META[k]?.color || "#22c55e",
             points: devBuf[k],
@@ -561,8 +563,9 @@
     // 4. Every remaining component gets its own independent single-scale chart card
     const remainingKeys = Object.keys(devBuf).filter((k) => !consumed.has(k) && devBuf[k]?.length);
     remainingKeys.forEach((k) => {
+      const mm = window.ERPIcons.getMetricMeta(k);
       const meta = SINGLE_METRIC_META[k] || {
-        title: devBuf[k][0]?.label || k,
+        title: mm.label || devBuf[k][0]?.label || k,
         unit: devBuf[k][0]?.unit || "",
         icon: "activity",
         cat: "other",
@@ -630,26 +633,34 @@
     `;
 
     // Render ALL live metrics (zero truncation)
-    $("detailKpiMetrics").innerHTML = readings.map((r) => `
-      <div class="metric-box">
-        <div class="metric-name">${r.metric}${r.depth_level ? ` · ${r.depth_level * 10}cm` : ""}</div>
+    $("detailKpiMetrics").innerHTML = readings.map((r) => {
+      const mm = window.ERPIcons.getMetricMeta(r.metric, r.depth_level);
+      return `
+      <div class="metric-box" title="${mm.tooltip}">
+        <div class="metric-name">${mm.label}</div>
         <div class="metric-val tabular-nums">${r.value ?? "-"} <small>${r.unit || ""}</small></div>
       </div>
-    `).join("") || `<div class="kpi-sub">No active numeric metrics yet (NO_DATA / Epoch sentinel guarded).</div>`;
+    `;
+    }).join("") || `<div class="kpi-sub">Chưa có thông số đo hoạt động (NO_DATA / Epoch sentinel).</div>`;
 
     // Build ALL component chart specs and category filter pills
     const devBuf = state.seriesHistory[dev.id] || {};
     const allSpecs = buildComponentChartSpecs(dev, devBuf);
     const categoriesPresent = [...new Set(allSpecs.map((s) => s.cat))];
-    const pills = [{ key: "ALL", label: `All Components (${allSpecs.length})` }]
+    const pills = [{ key: "ALL", label: `Tất cả (${allSpecs.length})`, tooltip: "Hiển thị toàn bộ thông số" }]
       .concat(categoriesPresent.map((cat) => ({
         key: `CAT:${cat}`,
         label: `${CATEGORY_LABELS[cat] || cat} (${allSpecs.filter((s) => s.cat === cat).length})`,
+        tooltip: CATEGORY_LABELS[cat] || cat,
       })))
-      .concat(allSpecs.map((s) => ({ key: `SPEC:${s.id}`, label: s.title })));
+      .concat(allSpecs.map((s) => {
+        const rawMetricKey = s.id.startsWith("cmp_") ? s.id.slice(4) : s.id;
+        const mm = window.ERPIcons.getMetricMeta(rawMetricKey);
+        return { key: `SPEC:${s.id}`, label: s.title, tooltip: mm.tooltip || s.title };
+      }));
 
     $("productMetricPills").innerHTML = pills.map((p) => `
-      <button type="button" class="metric-pill ${state.selectedMetricFilter === p.key ? "active" : ""}" data-metric-key="${p.key}">${p.label}</button>
+      <button type="button" class="metric-pill ${state.selectedMetricFilter === p.key ? "active" : ""}" data-metric-key="${p.key}" title="${p.tooltip}">${p.label}</button>
     `).join("");
 
     $("productMetricPills").querySelectorAll(".metric-pill").forEach((btn) => {
@@ -760,8 +771,11 @@
     const w = d.latest_weather || {};
     const keys = Object.keys(w);
     $("weatherOverview").innerHTML = keys.length
-      ? keys.map((k) => `<div class="metric-box"><div class="metric-name">${k}</div><div class="metric-val tabular-nums">${Number(w[k]).toFixed(2)}</div></div>`).join("")
-      : `<div class="kpi-sub">No live weather readings in this project.</div>`;
+      ? keys.map((k) => {
+          const mm = window.ERPIcons.getMetricMeta(k);
+          return `<div class="metric-box" title="${mm.tooltip}"><div class="metric-name">${mm.label}</div><div class="metric-val tabular-nums">${Number(w[k]).toFixed(2)}</div></div>`;
+        }).join("")
+      : `<div class="kpi-sub">Chưa có dữ liệu thời tiết trực tiếp trong dự án này.</div>`;
 
     $("isoGrid").innerHTML = Object.entries(d.iso_compliance || {}).map(([k, v]) => `
       <div class="iso-row"><strong>${k}</strong><span class="badge badge-ok">${v}</span></div>
@@ -793,12 +807,15 @@
       const dev = devMap[s.device_id] || { name: s.external_id, source_code: s.source_code };
       const soilHtml = s.source_code === "soilprobe" ? window.ERPCharts.renderSoilDepthHtml(s.readings) : "";
       const metricsHtml = soilHtml || `<div class="metric-grid">
-        ${(s.readings || []).map((r) => `
-          <div class="metric-box">
-            <div class="metric-name">${r.metric}${r.depth_level ? ` · ${r.depth_level * 10}cm` : ""}</div>
+        ${(s.readings || []).map((r) => {
+          const mm = window.ERPIcons.getMetricMeta(r.metric, r.depth_level);
+          return `
+          <div class="metric-box" title="${mm.tooltip}">
+            <div class="metric-name">${mm.label}</div>
             <div class="metric-val tabular-nums">${r.value ?? "-"} <small>${r.unit || ""}</small></div>
           </div>
-        `).join("") || '<div class="kpi-sub">No active readings (Epoch 1970 / NO_DATA guarded)</div>'}
+        `;
+        }).join("") || '<div class="kpi-sub">Chưa có dữ liệu đo (Epoch 1970 / NO_DATA guarded)</div>'}
       </div>`;
 
       return `<div class="sensor-card" data-device-id="${s.device_id}">
@@ -837,16 +854,16 @@
     const cur = steps[met.current_step_index || 0] || steps[0];
     $("metCurrentGrid").innerHTML = cur
       ? [
-          ["Temp", f(cur.temperature, " °C")],
-          ["Feels Like", f(cur.feels_like, " °C")],
-          ["Humidity", f(cur.humidity, " %")],
-          ["Pressure", f(cur.pressure, " hPa")],
-          ["Wind", f(cur.wind_speed, " km/h")],
-          ["Rain 1h/6h", `${f(cur.precipitation_1h)} / ${f(cur.precipitation_6h, " mm")}`],
-          ["UV Index", f(cur.uv_index)],
-          ["Cloud Cover", f(cur.cloud_cover, " %")],
-        ].map(([n, v]) => `<div class="metric-box"><div class="metric-name">${n}</div><div class="metric-val tabular-nums">${v}</div></div>`).join("")
-      : `<div class="kpi-sub">No current forecast step available</div>`;
+          ["Nhiệt độ không khí", "Nhiệt độ môi trường không khí", f(cur.temperature, " °C")],
+          ["Nhiệt độ cảm nhận", "Nhiệt độ cảm nhận thực tế", f(cur.feels_like, " °C")],
+          ["Độ ẩm tương đối", "Độ ẩm không khí tương đối", f(cur.humidity, " %")],
+          ["Áp suất khí quyển", "Áp suất khí quyển tại trạm", f(cur.pressure, " hPa")],
+          ["Tốc độ gió TB", "Tốc độ gió trung bình", f(cur.wind_speed, " km/h")],
+          ["Lượng mưa (1h / 6h)", "Lượng mưa dự báo trong 1 giờ và 6 giờ", `${f(cur.precipitation_1h)} / ${f(cur.precipitation_6h, " mm")}`],
+          ["Chỉ số UV", "Chỉ số tia cực tím (UV)", f(cur.uv_index)],
+          ["Độ che phủ mây", "Tỷ lệ mây che phủ bầu trời", f(cur.cloud_cover, " %")],
+        ].map(([n, tip, v]) => `<div class="metric-box" title="${tip}"><div class="metric-name">${n}</div><div class="metric-val tabular-nums">${v}</div></div>`).join("")
+      : `<div class="kpi-sub">Chưa có dữ liệu bước dự báo hiện tại</div>`;
 
     $("forecastDaysGrid").innerHTML = (met.days || []).map((d) => `
       <div class="forecast-day-card">
@@ -894,17 +911,17 @@
 
     const fcPts = (fn) => fcSteps.filter((s) => fn(s) != null).map((s) => ({ t: String(s.time_local || s.time_utc || "").slice(11, 16), v: Number(fn(s)) }));
     const tempSeries = [
-      { label: "Temp", unit: "°C", color: "#38bdf8", points: fcPts((s) => s.temperature) },
-      { label: "Feels Like", unit: "°C", color: "#f59e0b", points: fcPts((s) => s.feels_like) },
+      { label: "Nhiệt độ không khí", unit: "°C", color: "#38bdf8", points: fcPts((s) => s.temperature) },
+      { label: "Nhiệt độ cảm nhận", unit: "°C", color: "#f59e0b", points: fcPts((s) => s.feels_like) },
     ];
     const dewPts = fcPts((s) => s.dew_point);
-    if (dewPts.length) tempSeries.push({ label: "Dew Point", unit: "°C", color: "#22c55e", points: dewPts });
+    if (dewPts.length) tempSeries.push({ label: "Điểm sương", unit: "°C", color: "#22c55e", points: dewPts });
 
     window.ERPCharts.renderComponentChartsGrid($("forecastComponentCharts"), [
       {
         id: "fc_temp",
-        title: "Air Temp, Feels Like & Dew Point",
-        subtitle: "2m ambient, apparent & dew point thermal curve",
+        title: "Nhiệt độ không khí, Cảm nhận & Điểm sương",
+        subtitle: "Nhiệt độ môi trường không khí, cảm nhận thực tế & điểm sương (2m)",
         unit: "°C",
         icon: "thermometer-sun",
         accentColor: "#f59e0b",
@@ -913,61 +930,61 @@
       },
       {
         id: "fc_rain",
-        title: "Hourly Precipitation",
-        subtitle: "Spray & runoff rainfall histogram",
+        title: "Lượng mưa (1 giờ)",
+        subtitle: "Lượng mưa dự báo trong 1 giờ phục vụ kế hoạch phun",
         unit: "mm",
         icon: "cloud-rain",
         accentColor: "#0ea5e9",
         chartType: "bar",
         badgeHtml: curSymbolHtml,
-        series: [{ label: "Rain 1h", unit: "mm", color: "#0ea5e9", points: fcPts((s) => s.precipitation_1h ?? s.precipitation_6h ?? 0) }],
+        series: [{ label: "Lượng mưa (1 giờ)", unit: "mm", color: "#0ea5e9", points: fcPts((s) => s.precipitation_1h ?? s.precipitation_6h ?? 0) }],
       },
       {
         id: "fc_rh",
-        title: "Relative Humidity",
-        subtitle: "Canopy moisture & dew risk",
+        title: "Độ ẩm tương đối",
+        subtitle: "Độ ẩm không khí tương đối & nguy cơ đọng sương",
         unit: "%",
         icon: "droplet",
         accentColor: "#14b8a6",
-        series: [{ label: "Humidity", unit: "%", color: "#14b8a6", points: fcPts((s) => s.humidity) }],
+        series: [{ label: "Độ ẩm tương đối", unit: "%", color: "#14b8a6", points: fcPts((s) => s.humidity) }],
       },
       {
         id: "fc_wind",
-        title: "Wind Speed Forecast",
-        subtitle: "Drift assessment for field ops",
+        title: "Tốc độ gió TB",
+        subtitle: "Tốc độ gió trung bình đánh giá độ bay tạt",
         unit: "km/h",
         icon: "wind",
         accentColor: "#a78bfa",
-        series: [{ label: "Wind", unit: "km/h", color: "#a78bfa", points: fcPts((s) => s.wind_speed) }],
+        series: [{ label: "Tốc độ gió TB", unit: "km/h", color: "#a78bfa", points: fcPts((s) => s.wind_speed) }],
       },
       {
         id: "fc_pressure",
-        title: "Atmospheric Pressure",
-        subtitle: "Sea-level synoptics",
+        title: "Áp suất khí quyển",
+        subtitle: "Áp suất khí quyển tại trạm",
         unit: "hPa",
         icon: "gauge",
         accentColor: "#60a5fa",
-        series: [{ label: "Pressure", unit: "hPa", color: "#60a5fa", points: fcPts((s) => s.pressure) }],
+        series: [{ label: "Áp suất khí quyển", unit: "hPa", color: "#60a5fa", points: fcPts((s) => s.pressure) }],
       },
       {
         id: "fc_cloud",
-        title: "Cloud Cover Fraction",
-        subtitle: "Sky opacity % across 24h",
+        title: "Độ che phủ mây",
+        subtitle: "Tỷ lệ mây che phủ bầu trời trong 24 giờ",
         unit: "%",
         icon: "cloud",
         accentColor: "#94a3b8",
         badgeHtml: curSymbolHtml,
-        series: [{ label: "Cloud Cover", unit: "%", color: "#94a3b8", points: fcPts((s) => s.cloud_cover) }],
+        series: [{ label: "Độ che phủ mây", unit: "%", color: "#94a3b8", points: fcPts((s) => s.cloud_cover) }],
       },
       {
         id: "fc_uv",
-        title: "UV Radiation Index",
-        subtitle: "Solar exposure hazard tracking",
+        title: "Chỉ số UV",
+        subtitle: "Chỉ số tia cực tím (UV) theo dõi cường độ nắng",
         unit: "UV",
         icon: "sun",
         accentColor: "#facc15",
         badgeHtml: uvBadge,
-        series: [{ label: "UV Index", unit: "UV", color: "#facc15", points: fcPts((s) => s.uv_index) }],
+        series: [{ label: "Chỉ số UV", unit: "UV", color: "#facc15", points: fcPts((s) => s.uv_index) }],
       },
     ]);
 
@@ -1046,15 +1063,15 @@
   }
 
   const API_FORECAST_METRICS = [
-    { key: "temperature", title: "Air Temperature", unit: "°C", color: "#38bdf8", chartType: "line", pick: (s) => s.temperature },
-    { key: "feels_like", title: "Feels Like Temperature", unit: "°C", color: "#f59e0b", chartType: "line", pick: (s) => s.feels_like },
-    { key: "dew_point", title: "Dew Point", unit: "°C", color: "#22c55e", chartType: "line", pick: (s) => s.dew_point },
-    { key: "precipitation_1h", title: "Hourly Precipitation", unit: "mm", color: "#0ea5e9", chartType: "bar", pick: (s) => s.precipitation_1h ?? s.precipitation_6h },
-    { key: "humidity", title: "Relative Humidity", unit: "%", color: "#14b8a6", chartType: "line", pick: (s) => s.humidity },
-    { key: "wind_speed", title: "Wind Speed", unit: "km/h", color: "#a78bfa", chartType: "line", pick: (s) => s.wind_speed },
-    { key: "pressure", title: "Atmospheric Pressure", unit: "hPa", color: "#60a5fa", chartType: "line", pick: (s) => s.pressure },
-    { key: "cloud_cover", title: "Cloud Cover", unit: "%", color: "#94a3b8", chartType: "line", pick: (s) => s.cloud_cover },
-    { key: "uv_index", title: "UV Index", unit: "UV", color: "#facc15", chartType: "line", pick: (s) => s.uv_index },
+    { key: "temperature", title: "Nhiệt độ không khí", tooltip: "Nhiệt độ môi trường không khí", unit: "°C", color: "#38bdf8", chartType: "line", pick: (s) => s.temperature },
+    { key: "feels_like", title: "Nhiệt độ cảm nhận", tooltip: "Nhiệt độ cảm nhận thực tế", unit: "°C", color: "#f59e0b", chartType: "line", pick: (s) => s.feels_like },
+    { key: "dew_point", title: "Điểm sương", tooltip: "Nhiệt độ điểm sương", unit: "°C", color: "#22c55e", chartType: "line", pick: (s) => s.dew_point },
+    { key: "precipitation_1h", title: "Lượng mưa (1 giờ)", tooltip: "Lượng mưa trong 1 giờ", unit: "mm", color: "#0ea5e9", chartType: "bar", pick: (s) => s.precipitation_1h ?? s.precipitation_6h },
+    { key: "humidity", title: "Độ ẩm tương đối", tooltip: "Độ ẩm không khí tương đối", unit: "%", color: "#14b8a6", chartType: "line", pick: (s) => s.humidity },
+    { key: "wind_speed", title: "Tốc độ gió TB", tooltip: "Tốc độ gió trung bình", unit: "km/h", color: "#a78bfa", chartType: "line", pick: (s) => s.wind_speed },
+    { key: "pressure", title: "Áp suất khí quyển", tooltip: "Áp suất khí quyển tại trạm", unit: "hPa", color: "#60a5fa", chartType: "line", pick: (s) => s.pressure },
+    { key: "cloud_cover", title: "Độ che phủ mây", tooltip: "Tỷ lệ mây che phủ bầu trời", unit: "%", color: "#94a3b8", chartType: "line", pick: (s) => s.cloud_cover },
+    { key: "uv_index", title: "Chỉ số UV", tooltip: "Chỉ số tia cực tím (UV)", unit: "UV", color: "#facc15", chartType: "line", pick: (s) => s.uv_index },
   ];
 
   function renderApiModuleDevice() {
@@ -1094,9 +1111,10 @@
 
       if ($("apiModuleMetricPills")) {
         $("apiModuleMetricPills").innerHTML = metricKeys.map((k) => {
-          const lbl = devBuf[k][0]?.label || SINGLE_METRIC_META[k]?.title || k;
-          return `<button type="button" class="metric-pill ${state.apiModuleMetric === k ? "active" : ""}" data-dev-metric="${k}">${lbl}</button>`;
-        }).join("") || `<span class="kpi-sub">No active telemetry series for this device yet</span>`;
+          const mm = window.ERPIcons.getMetricMeta(k);
+          const lbl = SINGLE_METRIC_META[k]?.title || mm.label;
+          return `<button type="button" class="metric-pill ${state.apiModuleMetric === k ? "active" : ""}" data-dev-metric="${k}" title="${mm.tooltip}">${lbl}</button>`;
+        }).join("") || `<span class="kpi-sub">Chưa có chuỗi dữ liệu cảm biến cho thiết bị này</span>`;
 
         $("apiModuleMetricPills").querySelectorAll("[data-dev-metric]").forEach((btn) => {
           btn.addEventListener("click", () => {
@@ -1107,14 +1125,14 @@
         });
       }
 
-      if ($("apiModuleMapTitle")) $("apiModuleMapTitle").textContent = dev ? `Device Geolocation: ${dev.name} (${dev.external_id})` : "Device Geolocation";
+      if ($("apiModuleMapTitle")) $("apiModuleMapTitle").textContent = dev ? `Định vị thiết bị: ${dev.name} (${dev.external_id})` : "Định vị thiết bị";
       if ($("apiModuleLocationBadge")) {
-        $("apiModuleLocationBadge").innerHTML = dev ? powerBadge(dev, snap) : `<span class="badge badge-muted">NO DEVICE</span>`;
+        $("apiModuleLocationBadge").innerHTML = dev ? powerBadge(dev, snap) : `<span class="badge badge-muted">KHÔNG CÓ THIẾT BỊ</span>`;
       }
       if ($("apiModuleGeoSummary")) {
         $("apiModuleGeoSummary").textContent = dev?.coordinates
           ? `GPS: ${Number(dev.coordinates.latitude).toFixed(5)}, ${Number(dev.coordinates.longitude).toFixed(5)} · ${dev.comm_type || "IoT"}`
-          : "Device has no fixed GPS — showing workspace GeoJSON";
+          : "Thiết bị chưa có GPS cố định — hiển thị GeoJSON vùng";
       }
 
       apiModuleMap.render({ fields: state.fields, devices, snapshots, assets: state.assets }, state.projectId, {
@@ -1123,7 +1141,8 @@
 
       const points = (state.apiModuleMetric && devBuf[state.apiModuleMetric]) ? devBuf[state.apiModuleMetric] : [];
       const meta = SINGLE_METRIC_META[state.apiModuleMetric] || {};
-      const metricLabel = points[0]?.label || meta.title || state.apiModuleMetric || "Telemetry";
+      const curMeta = window.ERPIcons.getMetricMeta(state.apiModuleMetric);
+      const metricLabel = meta.title || curMeta.label || state.apiModuleMetric || "Thông số đo";
       const metricUnit = points[0]?.unit || meta.unit || "";
       const metricColor = meta.color || "#38bdf8";
 
@@ -1133,11 +1152,14 @@
       const avgV = vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2) : "-";
       const latestV = vals.length ? vals[vals.length - 1].toFixed(2) : "-";
 
-      if ($("apiModuleMetricTitle")) $("apiModuleMetricTitle").innerHTML = `<i data-lucide="table"></i><span>1 Data + 1 Graph — ${dev?.name || "Device"} · ${metricLabel}</span>`;
+      if ($("apiModuleMetricTitle")) $("apiModuleMetricTitle").innerHTML = `<i data-lucide="table"></i><span title="${curMeta.tooltip}">1 Bảng dữ liệu + 1 Đồ thị — ${dev?.name || "Thiết bị"} · ${metricLabel}</span>`;
       if ($("apiModuleMetricStats")) {
-        $("apiModuleMetricStats").innerHTML = `<span class="stat-pill">Latest <strong>${latestV} ${metricUnit}</strong></span><span class="stat-pill">Min <strong>${minV}</strong></span><span class="stat-pill">Avg <strong>${avgV}</strong></span><span class="stat-pill">Max <strong>${maxV}</strong></span>`;
+        $("apiModuleMetricStats").innerHTML = `<span class="stat-pill">Mới nhất <strong>${latestV} ${metricUnit}</strong></span><span class="stat-pill">Min <strong>${minV}</strong></span><span class="stat-pill">TB <strong>${avgV}</strong></span><span class="stat-pill">Max <strong>${maxV}</strong></span>`;
       }
-      if ($("apiModuleChartHeader")) $("apiModuleChartHeader").textContent = `${metricLabel}${metricUnit ? ` (${metricUnit})` : ""}`;
+      if ($("apiModuleChartHeader")) {
+        $("apiModuleChartHeader").textContent = `${metricLabel}${metricUnit ? ` (${metricUnit})` : ""}`;
+        $("apiModuleChartHeader").title = curMeta.tooltip;
+      }
       if ($("apiModuleChartBadge")) $("apiModuleChartBadge").textContent = `${latestV} ${metricUnit}`.trim();
 
       const reversedPts = [...points].reverse();
@@ -1154,22 +1176,22 @@
       state.apiModulePage = safePage;
       const pageRows = reversedPts.slice((safePage - 1) * API_MODULE_PAGE_SIZE, safePage * API_MODULE_PAGE_SIZE);
 
-      $("apiModuleTableHead").innerHTML = `<tr><th>Timestamp</th><th>Device</th><th>Metric</th><th>Value</th><th>Unit</th><th>Power</th></tr>`;
+      $("apiModuleTableHead").innerHTML = `<tr><th>Thời gian</th><th>Thiết bị</th><th>Thông số</th><th>Giá trị</th><th>Đơn vị</th><th>Nguồn</th></tr>`;
       $("apiModuleTableBody").innerHTML = pageRows.map((pt) => `
         <tr>
           <td>${pt.t}</td>
           <td>${dev?.name || "-"}</td>
-          <td>${metricLabel}</td>
+          <td title="${curMeta.tooltip}">${metricLabel}</td>
           <td><strong>${Number(pt.v).toFixed(2)}</strong></td>
           <td>${metricUnit || "-"}</td>
           <td>${dev ? powerBadge(dev, snap) : "-"}</td>
         </tr>
-      `).join("") || `<tr><td colspan="6">No records for selected device metric</td></tr>`;
+      `).join("") || `<tr><td colspan="6">Chưa có bản ghi cho thông số thiết bị đã chọn</td></tr>`;
 
       window.ERPCharts.renderRealtimeSeries($("apiModuleChartCanvas"), $("apiModuleChartTooltip"), {
         height: 290,
         series: points.length ? [{ label: metricLabel, unit: metricUnit, color: metricColor, points }] : [],
-        emptyText: "Waiting for telemetry samples for this device...",
+        emptyText: "Đang chờ dữ liệu cảm biến cho thiết bị này...",
       });
     } else {
       const met = state.forecast?.met_norway || { status: "DISCONNECTED", steps: [] };
@@ -1179,7 +1201,7 @@
 
       if ($("apiModuleForecastMetricPills")) {
         $("apiModuleForecastMetricPills").innerHTML = API_FORECAST_METRICS.map((fm) => `
-          <button type="button" class="metric-pill ${state.apiModuleForecastMetric === fm.key ? "active" : ""}" data-fc-metric="${fm.key}">${fm.title}</button>
+          <button type="button" class="metric-pill ${state.apiModuleForecastMetric === fm.key ? "active" : ""}" data-fc-metric="${fm.key}" title="${fm.tooltip}">${fm.title}</button>
         `).join("");
         $("apiModuleForecastMetricPills").querySelectorAll("[data-fc-metric]").forEach((btn) => {
           btn.addEventListener("click", () => {
@@ -1190,14 +1212,14 @@
         });
       }
 
-      if ($("apiModuleMapTitle")) $("apiModuleMapTitle").textContent = loc ? `Forecast Location: ${loc.name}` : "Forecast Geolocation";
+      if ($("apiModuleMapTitle")) $("apiModuleMapTitle").textContent = loc ? `Định vị điểm dự báo: ${loc.name}` : "Định vị điểm dự báo";
       if ($("apiModuleLocationBadge")) {
         $("apiModuleLocationBadge").innerHTML = curStep ? window.ERPIcons.weatherSymbolBadgeHtml(curStep.symbol) : badge(met.status || "DISCONNECTED");
       }
       if ($("apiModuleGeoSummary")) {
         $("apiModuleGeoSummary").textContent = loc
-          ? `GPS: ${loc.latitude.toFixed(5)}, ${loc.longitude.toFixed(5)}${loc.elevation != null ? ` · Elev: ${loc.elevation}m` : ""} · ${loc.time_zone} (${loc.source})`
-          : "No WGS84 forecast coordinates returned";
+          ? `GPS: ${loc.latitude.toFixed(5)}, ${loc.longitude.toFixed(5)}${loc.elevation != null ? ` · Độ cao: ${loc.elevation}m` : ""} · ${loc.time_zone} (${loc.source})`
+          : "Chưa nhận được tọa độ WGS84 dự báo";
       }
 
       apiModuleMap.renderForecastLocation(loc, curStep, state.fields);
@@ -1217,11 +1239,14 @@
       const avgV = vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : "-";
       const curV = curStep && fm.pick(curStep) != null ? Number(fm.pick(curStep)).toFixed(1) : (vals[0] != null ? vals[0].toFixed(1) : "-");
 
-      if ($("apiModuleMetricTitle")) $("apiModuleMetricTitle").innerHTML = `<i data-lucide="cloud-sun-rain"></i><span>1 Data + 1 Graph — Forecast · ${fm.title}</span>`;
+      if ($("apiModuleMetricTitle")) $("apiModuleMetricTitle").innerHTML = `<i data-lucide="cloud-sun-rain"></i><span title="${fm.tooltip}">1 Bảng dữ liệu + 1 Đồ thị — Dự báo · ${fm.title}</span>`;
       if ($("apiModuleMetricStats")) {
-        $("apiModuleMetricStats").innerHTML = `<span class="stat-pill">Now <strong>${curV} ${fm.unit}</strong></span><span class="stat-pill">Min <strong>${minV}</strong></span><span class="stat-pill">Avg <strong>${avgV}</strong></span><span class="stat-pill">Max <strong>${maxV}</strong></span>`;
+        $("apiModuleMetricStats").innerHTML = `<span class="stat-pill">Hiện tại <strong>${curV} ${fm.unit}</strong></span><span class="stat-pill">Min <strong>${minV}</strong></span><span class="stat-pill">TB <strong>${avgV}</strong></span><span class="stat-pill">Max <strong>${maxV}</strong></span>`;
       }
-      if ($("apiModuleChartHeader")) $("apiModuleChartHeader").textContent = `${fm.title} (${fm.unit})`;
+      if ($("apiModuleChartHeader")) {
+        $("apiModuleChartHeader").textContent = `${fm.title} (${fm.unit})`;
+        $("apiModuleChartHeader").title = fm.tooltip;
+      }
       if ($("apiModuleChartBadge")) $("apiModuleChartBadge").textContent = `${curV} ${fm.unit}`;
 
       const safePage = renderTablePagination(
@@ -1237,7 +1262,7 @@
       state.apiModulePage = safePage;
       const pageRows = fcPoints.slice((safePage - 1) * API_MODULE_PAGE_SIZE, safePage * API_MODULE_PAGE_SIZE);
 
-      $("apiModuleTableHead").innerHTML = `<tr><th>Time</th><th>Weather Symbol</th><th>${fm.title}</th><th>Unit</th><th>Rain 1h</th><th>Wind</th></tr>`;
+      $("apiModuleTableHead").innerHTML = `<tr><th>Thời gian</th><th title="Trạng thái thời tiết tổng hợp">Thời tiết</th><th title="${fm.tooltip}">${fm.title}</th><th>Đơn vị</th><th title="Lượng mưa trong 1 giờ">Lượng mưa (1 giờ)</th><th title="Tốc độ gió trung bình">Tốc độ gió TB</th></tr>`;
       $("apiModuleTableBody").innerHTML = pageRows.map((pt) => {
         const st = pt.step;
         const rainStr = st.precipitation_1h != null ? `${Number(st.precipitation_1h).toFixed(1)} mm` : "-";
@@ -1250,14 +1275,14 @@
           <td>${rainStr}</td>
           <td>${windStr}</td>
         </tr>`;
-      }).join("") || `<tr><td colspan="6">No forecast records available for this metric</td></tr>`;
+      }).join("") || `<tr><td colspan="6">Không có bản ghi dự báo cho thông số này</td></tr>`;
 
       const chartPts = fcPoints.slice(0, 36).map((p) => ({ t: p.t.slice(-5), v: p.v }));
       window.ERPCharts.renderRealtimeSeries($("apiModuleChartCanvas"), $("apiModuleChartTooltip"), {
         height: 290,
         chartType: fm.chartType || "line",
         series: chartPts.length ? [{ label: fm.title, unit: fm.unit, color: fm.color, points: chartPts }] : [],
-        emptyText: "No forecast series points available...",
+        emptyText: "Chưa có dữ liệu chuỗi dự báo...",
       });
     }
 

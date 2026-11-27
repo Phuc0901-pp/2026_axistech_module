@@ -216,6 +216,6 @@ def test_ut_054_iso29119_traceability_matrix_completeness() -> None:
     for idx in range(1, 72):
         ut_id = f"UT-{idx:03d}"
         assert ut_id in matrix_text, f"Missing {ut_id} in traceability matrix"
-    for idx in range(1, 56):
+    for idx in range(1, 57):
         gut_id = f"G-UT-{idx:03d}"
         assert gut_id in matrix_text, f"Missing {gut_id} in traceability matrix"
