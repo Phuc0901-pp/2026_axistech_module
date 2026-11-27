@@ -1,0 +1,26 @@
+name: Render Keep-Alive Ping
+
+on:
+  schedule:
+    # Render Free tier sleeps after ~15m idle; ping every 12 minutes to keep warm
+    - cron: "*/12 * * * *"
+  workflow_dispatch:
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Ping Render Public Health Endpoint
+        env:
+          RENDER_URL: ${{ vars.RENDER_PUBLIC_URL }}
+        run: |
+          if [ -z "$RENDER_URL" ]; then
+            echo "RENDER_PUBLIC_URL repository variable is not set yet. Add it in Settings -> Secrets and variables -> Actions -> Variables (e.g. https://axistech-iso-erp.onrender.com)."
+            exit 0
+          fi
+          TARGET="${RENDER_URL%/}/health/live"
+          echo "Pinging $TARGET ..."
+          curl -fsS --max-time 30 --retry 2 "$TARGET"
+          echo ""
+          echo "Render service is awake and healthy."

@@ -1,0 +1,50 @@
+# Render Blueprint (Free Plan · Single Docker Web Service · Auto HTTPS)
+services:
+  - type: web
+    name: axistech-iso-erp
+    runtime: docker
+    dockerfilePath: ./Dockerfile.render
+    dockerContext: .
+    plan: free
+    region: singapore
+    autoDeploy: true
+    healthCheckPath: /health/live
+    envVars:
+      - key: AXISSTREAM_MODE
+        value: live
+      - key: AXISSTREAM_AUTH_MODE
+        value: dual
+      - key: AXISSTREAM_V2_BASE_URL
+        value: https://v2.api.axisstream.co
+      - key: AXISSTREAM_DATA_BASE_URL
+        value: https://data.api.axisstream.co
+      - key: AXISSTREAM_PROVIDER_BASE_URL
+        value: https://provider.api.axisstream.co
+      - key: AXISSTREAM_ALLOWED_HOST_SUFFIX
+        value: .axisstream.co
+      - key: AXISSTREAM_LOCAL_TIMEZONE
+        value: Asia/Ho_Chi_Minh
+      - key: AXISSTREAM_SYNC_INTERVAL_SEC
+        value: "15"
+      - key: SYNC_INTERVAL_SEC
+        value: "15"
+      - key: ERP_REQUIRE_API_KEY
+        value: "true"
+      - key: ERP_RATE_LIMIT_RPM
+        value: "300"
+      - key: AXISSTREAM_INBOUND_API_KEY
+        generateValue: true
+      - key: AXISSTREAM_WEBHOOK_SECRET
+        generateValue: true
+      - key: AXISSTREAM_ENCRYPTION_KEY
+        generateValue: true
+      - key: ERP_API_KEY
+        generateValue: true
+      - key: ERP_ENCRYPTION_KEY
+        generateValue: true
+      - key: AXISSTREAM_AXISSTREAM_USERNAME
+        sync: false
+      - key: AXISSTREAM_AXISSTREAM_PASSWORD
+        sync: false
+      - key: AXISSTREAM_AXISSTREAM_EXCHANGE_TOKEN
+        sync: false
