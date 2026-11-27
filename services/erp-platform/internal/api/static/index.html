@@ -391,6 +391,20 @@
           <div id="apiModuleForecastControls" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
             <div id="apiModuleForecastMetricPills" class="metric-pills"></div>
           </div>
+
+          <div id="apiModuleShareBar" class="module-share-bar">
+            <div class="share-url-group">
+              <span class="badge badge-info">REST API</span>
+              <code id="apiModuleApiUrlPreview" class="share-url-chip">/api/tbsgagtech/v1/modules/...</code>
+              <button type="button" id="copyApiUrlBtn" class="btn btn-ghost btn-sm"><i data-lucide="copy"></i><span>Copy API URL</span></button>
+            </div>
+            <div class="share-url-group">
+              <span class="badge badge-ok">ISO PAGE</span>
+              <code id="apiModulePageUrlPreview" class="share-url-chip">/tbsgagtech/v1/modules/...</code>
+              <button type="button" id="copyPageUrlBtn" class="btn btn-ghost btn-sm"><i data-lucide="link"></i><span>Copy Page URL</span></button>
+              <button type="button" id="copyEmbedUrlBtn" class="btn btn-ghost btn-sm"><i data-lucide="code-2"></i><span>Copy Embed (?embed=1)</span></button>
+            </div>
+          </div>
         </div>
 
         <div class="card">

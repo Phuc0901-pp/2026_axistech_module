@@ -53,6 +53,10 @@ Mọi lỗi đều trả về chuẩn **RFC 9457 (`application/problem+json`)** 
 | `GET /api/erp/v1/audit?limit=` | Nhật ký Audit ISO 27001 kèm `prev_hash` và `entry_hash` SHA-256 |
 | `POST /api/erp/v1/sync/now` | Ép ERP + Bridge đồng bộ ngay |
 | `GET /api/erp/v1/events` | SSE live stream (`connected`, `sync_update`, `incident_update`, `heartbeat`) |
+| `GET /api/tbsgagtech/v1/modules/catalog` | Khám phá các module Device (`dev_...`) & Forecast Point (`fcp_...`) kèm `ui_url`, `embed_url`, `api_url` |
+| `GET /api/tbsgagtech/v1/modules/devices/{dev_token}` | REST API độc lập kéo 1 module Device sang hệ thống ngoài (`power_state`, `geolocation`, bảng 10/trang, đồ thị) |
+| `GET /api/tbsgagtech/v1/modules/forecast/{fcp_token}` | REST API độc lập kéo 1 module Forecast điểm sang hệ thống ngoài (`location`, `table` 10/trang, `chart`) |
+| `GET /tbsgagtech/v1/*` | Đường dẫn SPA chuẩn ISO (`/tbsgagtech/v1/overview`, `/modules/devices/dev_...`, `/modules/forecast/fcp_...`) |
 
 ---
 

@@ -518,6 +518,78 @@ func TestGUT048_ForecastLocationAndDeviceCoordsAPI(t *testing.T) {
 	}
 }
 
+func TestGUT050_TbsgAgTechPortableModuleAPIsAndInvalidToken400(t *testing.T) {
+	router, _ := setupTestRouter(t)
+
+	catRec := httptest.NewRecorder()
+	router.ServeHTTP(catRec, httptest.NewRequest(http.MethodGet, "/api/tbsgagtech/v1/modules/catalog", nil))
+	if catRec.Code != http.StatusOK {
+		t.Fatalf("modules catalog failed: %d %s", catRec.Code, catRec.Body.String())
+	}
+	var cat struct {
+		Namespace string `json:"namespace"`
+		Devices   []struct {
+			Token  string `json:"token"`
+			UIURL  string `json:"ui_url"`
+			APIURL string `json:"api_url"`
+		} `json:"devices"`
+		Forecasts []struct {
+			Token  string `json:"token"`
+			UIURL  string `json:"ui_url"`
+			APIURL string `json:"api_url"`
+		} `json:"forecasts"`
+	}
+	if err := json.Unmarshal(catRec.Body.Bytes(), &cat); err != nil || cat.Namespace != "tbsgagtech" || len(cat.Devices) == 0 || len(cat.Forecasts) == 0 {
+		t.Fatalf("unexpected catalog payload: %s (%v)", catRec.Body.String(), err)
+	}
+	if !strings.HasPrefix(cat.Devices[0].Token, "dev_") || !strings.HasPrefix(cat.Forecasts[0].Token, "fcp_") {
+		t.Fatalf("expected opaque dev_/fcp_ tokens, got %+v", cat)
+	}
+
+	devRec := httptest.NewRecorder()
+	router.ServeHTTP(devRec, httptest.NewRequest(http.MethodGet, cat.Devices[0].APIURL+"?page=1&page_size=10", nil))
+	if devRec.Code != http.StatusOK || !strings.Contains(devRec.Body.String(), `"power_state"`) || !strings.Contains(devRec.Body.String(), `"page_size":10`) {
+		t.Fatalf("portable device module API failed: %d %s", devRec.Code, devRec.Body.String())
+	}
+
+	fcRec := httptest.NewRecorder()
+	router.ServeHTTP(fcRec, httptest.NewRequest(http.MethodGet, cat.Forecasts[0].APIURL+"?metric=temperature&page=1&page_size=10", nil))
+	if fcRec.Code != http.StatusOK || !strings.Contains(fcRec.Body.String(), "11.6901") || !strings.Contains(fcRec.Body.String(), `"location"`) {
+		t.Fatalf("portable forecast module API failed: %d %s", fcRec.Code, fcRec.Body.String())
+	}
+
+	badRec := httptest.NewRecorder()
+	router.ServeHTTP(badRec, httptest.NewRequest(http.MethodGet, "/api/tbsgagtech/v1/modules/devices/dev_tampered_token", nil))
+	if badRec.Code != http.StatusBadRequest || !strings.Contains(badRec.Body.String(), "INVALID_RESOURCE_TOKEN") {
+		t.Fatalf("expected RFC 9457 400 on tampered token, got %d %s", badRec.Code, badRec.Body.String())
+	}
+}
+
+func TestGUT051_TbsgAgTechISODeepLinkSPARouting(t *testing.T) {
+	router, _ := setupTestRouter(t)
+	for _, path := range []string{
+		"/tbsgagtech/v1/overview",
+		"/tbsgagtech/v1/modules/devices/dev_demo",
+		"/tbsgagtech/v1/modules/forecast/fcp_demo",
+		"/tbsgagtech/v1/compliance/audit",
+	} {
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+		if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `id="tab-api-module"`) {
+			t.Fatalf("expected SPA HTML 200 for deep-link %s, got %d", path, rec.Code)
+		}
+	}
+
+	appRec := httptest.NewRecorder()
+	router.ServeHTTP(appRec, httptest.NewRequest(http.MethodGet, "/js/app.js", nil))
+	appJs := appRec.Body.String()
+	for _, sym := range []string{"/tbsgagtech/v1/overview", "applyRouteFromLocation", "syncBrowserUrl", "resolveCurrentModuleShare"} {
+		if !strings.Contains(appJs, sym) {
+			t.Fatalf("app.js missing tbsgagtech ISO SPA route symbol %q", sym)
+		}
+	}
+}
+
 func TestGUT045_RateLimiterAndRequireAPIKeyMutationGuard(t *testing.T) {
 	store, _ := repository.NewStore("")
 	hub := realtime.NewHub(8)

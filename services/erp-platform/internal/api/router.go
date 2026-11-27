@@ -41,6 +41,23 @@ func NewRouterWithOptions(h *Handler, log *slog.Logger, opts RouterSecurityOptio
 	mux.HandleFunc("POST /api/erp/v1/sync/now", h.TriggerSync)
 	mux.HandleFunc("GET /api/erp/v1/events", h.StreamEvents)
 
+	// Portable ISO 27001 encrypted REST endpoints (tbsgagtech namespace)
+	mux.HandleFunc("GET /api/tbsgagtech/v1/modules/catalog", h.GetModulesCatalog)
+	mux.HandleFunc("GET /api/tbsgagtech/v1/modules/devices/", h.GetDeviceModule)
+	mux.HandleFunc("GET /api/tbsgagtech/v1/modules/forecast/", h.GetForecastModule)
+
+	// Deep-link ISO SPA routes (/tbsgagtech/v1/*)
+	mux.HandleFunc("GET /tbsgagtech/", func(w http.ResponseWriter, r *http.Request) {
+		raw, err := fs.ReadFile(staticFiles, "static/index.html")
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(raw)
+	})
+
 	sub, err := fs.Sub(staticFiles, "static")
 	if err == nil {
 		mux.Handle("/", http.FileServer(http.FS(sub)))

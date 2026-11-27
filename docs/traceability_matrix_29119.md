@@ -121,3 +121,6 @@
 | REQ-UI-08: API Module 1 Data + 1 Graph (10/page) | ERP-API-T1 | G-UT-046 | Verify `Devices` & `Forecast` modes, `API_MODULE_PAGE_SIZE = 10` & single-scale paired view |
 | REQ-GEO-02: Forecast Geolocation Map & Guard | ERP-API-T2 | G-UT-047 | Verify `renderForecastLocation`, `forecastGroup` & `resolveForecastLocation` WGS84 guard |
 | REQ-API-08: Forecast & Device Coords API | ERP-API-T3 | G-UT-048 | Verify `/api/erp/v1/forecast` & `/devices` serve live target coordinates for map pin |
+| REQ-SEC-16: AES-256-GCM Opaque Module Tokens | TBSG-API-T1 | G-UT-049 | Encode/decode deterministic `dev_...`/`fcp_...` tokens; reject wrong-key & tampering |
+| REQ-API-09: Portable `tbsgagtech` Module REST APIs | TBSG-API-T2 | G-UT-050 | Serve `/api/tbsgagtech/v1/modules/{catalog,devices/,forecast/}` & RFC 9457 400 bad token |
+| REQ-UI-09: ISO Deep-Link SPA Routing (`/tbsgagtech/v1/*`) | TBSG-API-T3 | G-UT-051 | Serve SPA HTML on `/tbsgagtech/v1/*` routes & sync `history.pushState` / `?embed=1` |

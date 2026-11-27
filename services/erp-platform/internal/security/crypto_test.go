@@ -3,6 +3,7 @@ package security
 import (
 	"bytes"
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
@@ -72,5 +73,40 @@ func TestGUT039_AuditHashChainIntegrityAndTamperDetect(t *testing.T) {
 	tampered[0].Details = "forged-details"
 	if VerifyAuditChain(tampered) {
 		t.Fatal("expected VerifyAuditChain to fail when entry details are modified")
+	}
+}
+
+func TestGUT049_OpaqueResourceTokenAES256GCMAndTamperReject(t *testing.T) {
+	codec := NewResourceTokenCodec("tbsgagtech-master-secret")
+
+	devTok, err := codec.EncodeDeviceToken("proj-tbsg-1", "dev-weather-79DAAFB4")
+	if err != nil {
+		t.Fatalf("EncodeDeviceToken failed: %v", err)
+	}
+	if !strings.HasPrefix(devTok, DeviceTokenPrefix) || strings.Contains(devTok, "79DAAFB4") {
+		t.Fatalf("device token must be opaque dev_... without plaintext leakage, got %q", devTok)
+	}
+	devTok2, _ := codec.EncodeDeviceToken("proj-tbsg-1", "dev-weather-79DAAFB4")
+	if devTok != devTok2 {
+		t.Fatal("expected deterministic device token for stable bookmarking")
+	}
+	pid, did, err := codec.DecodeDeviceToken(devTok)
+	if err != nil || pid != "proj-tbsg-1" || did != "dev-weather-79DAAFB4" {
+		t.Fatalf("DecodeDeviceToken failed: pid=%q did=%q err=%v", pid, did, err)
+	}
+	if _, _, err := codec.DecodeDeviceToken(devTok + "X"); err == nil {
+		t.Fatal("expected tampered device token rejection")
+	}
+
+	fcTok, err := codec.EncodeForecastToken("proj-tbsg-1", 11.6901, 106.8495)
+	if err != nil || !strings.HasPrefix(fcTok, ForecastTokenPrefix) {
+		t.Fatalf("EncodeForecastToken failed: %q err=%v", fcTok, err)
+	}
+	fpid, lat, lon, err := codec.DecodeForecastToken(fcTok)
+	if err != nil || fpid != "proj-tbsg-1" || lat != 11.6901 || lon != 106.8495 {
+		t.Fatalf("DecodeForecastToken failed: %q %f %f err=%v", fpid, lat, lon, err)
+	}
+	if _, _, _, err := NewResourceTokenCodec("wrong-key").DecodeForecastToken(fcTok); err == nil {
+		t.Fatal("expected wrong key to reject forecast token")
 	}
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/tanbaocorp/axisstream-erp/internal/logger"
 	"github.com/tanbaocorp/axisstream-erp/internal/realtime"
 	"github.com/tanbaocorp/axisstream-erp/internal/repository"
+	"github.com/tanbaocorp/axisstream-erp/internal/security"
 	"github.com/tanbaocorp/axisstream-erp/internal/service"
 )
 
@@ -45,6 +46,7 @@ func main() {
 	go worker.Start(ctx)
 
 	handler := api.NewHandler(svc, store, hub, log)
+	handler.SetTokenCodec(security.NewResourceTokenCodec(cfg.EncryptionKey))
 	router := api.NewRouterWithOptions(handler, log, api.RouterSecurityOptions{
 		RateLimitRPM:  cfg.RateLimitRPM,
 		RequireAPIKey: cfg.RequireAPIKey,

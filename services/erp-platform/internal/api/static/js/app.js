@@ -3,11 +3,23 @@
   const MAX_SERIES_POINTS = 48;
   const PAGE_SIZE = 20;
   const API_MODULE_PAGE_SIZE = 10;
+  const TAB_ROUTES = {
+    overview: "/tbsgagtech/v1/overview",
+    telemetry: "/tbsgagtech/v1/telemetry",
+    forecast: "/tbsgagtech/v1/forecast",
+    fields: "/tbsgagtech/v1/fields",
+    assets: "/tbsgagtech/v1/assets",
+    "api-module": "/tbsgagtech/v1/modules",
+    incidents: "/tbsgagtech/v1/incidents",
+    audit: "/tbsgagtech/v1/compliance/audit",
+  };
 
   const state = {
     projectId: "",
     selectedDeviceId: "",
     selectedMetricFilter: "ALL",
+    activeTab: "overview",
+    routeApplied: false,
     auditPage: 1,
     alertHistoryPage: 1,
     apiModuleMode: "devices",
@@ -15,6 +27,7 @@
     apiModuleMetric: "",
     apiModuleForecastMetric: "temperature",
     apiModulePage: 1,
+    moduleCatalog: { devices: [], forecasts: [] },
     theme: localStorage.getItem("axs_theme") || "dark",
     dash: null,
     security: null,
@@ -279,9 +292,79 @@
     onInspectDevice: openInspectorForDevice,
   });
 
-  function switchTab(tabName) {
+  function resolveCurrentModuleShare() {
+    const isDevices = state.apiModuleMode !== "forecast";
+    if (isDevices) {
+      const hit = (state.moduleCatalog?.devices || []).find((x) => x.device_id === state.apiModuleDeviceId && (!state.projectId || x.project_id === state.projectId))
+        || (state.moduleCatalog?.devices || []).find((x) => x.device_id === state.apiModuleDeviceId);
+      if (hit) {
+        const mQ = state.apiModuleMetric ? `?metric=${encodeURIComponent(state.apiModuleMetric)}&page=${state.apiModulePage}&page_size=${API_MODULE_PAGE_SIZE}` : `?page=${state.apiModulePage}&page_size=${API_MODULE_PAGE_SIZE}`;
+        return { apiUrl: hit.api_url + mQ, pageUrl: hit.ui_url, embedUrl: hit.embed_url };
+      }
+      return { apiUrl: "/api/tbsgagtech/v1/modules/catalog", pageUrl: "/tbsgagtech/v1/modules", embedUrl: "/tbsgagtech/v1/modules?embed=1" };
+    }
+    const fHit = (state.moduleCatalog?.forecasts || []).find((x) => x.project_id === state.projectId) || (state.moduleCatalog?.forecasts || [])[0];
+    if (fHit) {
+      const fQ = `?metric=${encodeURIComponent(state.apiModuleForecastMetric || "temperature")}&page=${state.apiModulePage}&page_size=${API_MODULE_PAGE_SIZE}`;
+      return { apiUrl: fHit.api_url + fQ, pageUrl: fHit.ui_url, embedUrl: fHit.embed_url };
+    }
+    return { apiUrl: "/api/tbsgagtech/v1/modules/catalog", pageUrl: "/tbsgagtech/v1/modules", embedUrl: "/tbsgagtech/v1/modules?embed=1" };
+  }
+
+  function syncBrowserUrl(tabName, opts = {}) {
+    const isEmbed = new URLSearchParams(window.location.search).get("embed") === "1";
+    document.body.classList.toggle("embed-mode", isEmbed);
+    let path = TAB_ROUTES[tabName] || "/tbsgagtech/v1/overview";
+    if (tabName === "api-module") {
+      path = resolveCurrentModuleShare().pageUrl || "/tbsgagtech/v1/modules";
+    }
+    const nextUrl = path + (isEmbed ? "?embed=1" : "");
+    if ((window.location.pathname + window.location.search) !== nextUrl) {
+      if (opts.replace) window.history.replaceState({ tab: tabName }, "", nextUrl);
+      else if (!opts.skipPush) window.history.pushState({ tab: tabName }, "", nextUrl);
+    }
+  }
+
+  function applyRouteFromLocation() {
+    const params = new URLSearchParams(window.location.search);
+    document.body.classList.toggle("embed-mode", params.get("embed") === "1");
+    const path = window.location.pathname || "/";
+    if (path === "/" || path === "") return;
+
+    const devMatch = path.match(/^\/tbsgagtech\/v1\/modules\/devices\/([^/]+)/);
+    if (devMatch) {
+      const tok = decodeURIComponent(devMatch[1]);
+      const hit = (state.moduleCatalog?.devices || []).find((d) => d.token === tok);
+      state.apiModuleMode = "devices";
+      if (hit) {
+        if (hit.project_id && hit.project_id !== state.projectId) {
+          state.projectId = hit.project_id;
+        }
+        state.apiModuleDeviceId = hit.device_id;
+      }
+      switchTab("api-module", { skipPush: true });
+      return;
+    }
+
+    const fcMatch = path.match(/^\/tbsgagtech\/v1\/modules\/forecast\/([^/]+)/);
+    if (fcMatch) {
+      const tok = decodeURIComponent(fcMatch[1]);
+      const hit = (state.moduleCatalog?.forecasts || []).find((f) => f.token === tok);
+      state.apiModuleMode = "forecast";
+      if (hit && hit.project_id) state.projectId = hit.project_id;
+      switchTab("api-module", { skipPush: true });
+      return;
+    }
+
+    const matchedTab = Object.entries(TAB_ROUTES).find(([, route]) => path.startsWith(route))?.[0];
+    if (matchedTab) switchTab(matchedTab, { skipPush: true });
+  }
+
+  function switchTab(tabName, opts = {}) {
+    state.activeTab = tabName;
     document.querySelectorAll(".nav-item").forEach((b) => b.classList.toggle("active", b.dataset.tab === tabName));
     document.querySelectorAll(".tab-panel").forEach((p) => p.classList.toggle("active", p.id === `tab-${tabName}`));
+    syncBrowserUrl(tabName, opts);
     if (tabName === "overview") {
       overviewMap.invalidateSize();
       setTimeout(() => renderCascadingStep3(), 40);
@@ -1177,6 +1260,11 @@
         emptyText: "No forecast series points available...",
       });
     }
+
+    const share = resolveCurrentModuleShare();
+    if ($("apiModuleApiUrlPreview")) $("apiModuleApiUrlPreview").textContent = share.apiUrl;
+    if ($("apiModulePageUrlPreview")) $("apiModulePageUrlPreview").textContent = share.pageUrl;
+    if (state.activeTab === "api-module") syncBrowserUrl("api-module", { replace: true });
     window.ERPIcons.refresh();
   }
 
@@ -1292,17 +1380,17 @@
     sel.value = state.projectId;
 
     const pq = `?project_id=${encodeURIComponent(state.projectId)}`;
-    const [fields, assets, policies, alertHistory, incidents, exchange, forecast, audit, hist, sec] = await Promise.all([
+    const [fields, assets, policies, alertHistory, incidents, forecast, audit, hist, sec, modCatalog] = await Promise.all([
       api(`/api/erp/v1/fields${pq}`),
       api(`/api/erp/v1/assets${pq}`),
       api(`/api/erp/v1/alerts/policies${pq}`),
       api(`/api/erp/v1/alerts/history${pq}`),
       api(`/api/erp/v1/incidents${pq}`),
-      api(`/api/erp/v1/exchange/weather${pq}`),
       api(`/api/erp/v1/forecast${pq}`),
       api(`/api/erp/v1/audit?limit=200`),
       api(`/api/erp/v1/telemetry/history${pq}&hours=24`).catch(() => ({ data: [] })),
       api(`/api/erp/v1/security/status`).catch(() => dash.security || null),
+      api(`/api/tbsgagtech/v1/modules/catalog`).catch(() => ({ devices: [], forecasts: [] })),
     ]);
 
     state.fields = fields.data || [];
@@ -1310,14 +1398,22 @@
     state.policies = policies.data || [];
     state.alertHistory = alertHistory.data || [];
     state.incidents = incidents.data || [];
-    state.exchangeTokens = exchange.tokens || [];
-    state.exchangeRows = exchange.data || [];
     state.forecast = forecast;
     state.audit = audit.data || [];
     state.security = sec;
+    state.moduleCatalog = modCatalog || { devices: [], forecasts: [] };
+
+    if (!state.routeApplied) {
+      state.routeApplied = true;
+      const prevProj = state.projectId;
+      applyRouteFromLocation();
+      if (state.projectId && state.projectId !== prevProj) {
+        return refreshAll();
+      }
+    }
 
     ingestHistoryReadings(hist.data || []);
-    (dash.snapshots || []).forEach((s) => recordDeviceSnapshotSeries(s, state.exchangeRows));
+    (dash.snapshots || []).forEach((s) => recordDeviceSnapshotSeries(s, []));
 
     rerenderAllViews();
   }
@@ -1445,6 +1541,23 @@
     $("sseStatus").className = "status-pill connecting";
     window.ERPIcons.refresh();
   };
+
+  const copyUrlToClipboard = (btnEl, relativeUrl) => {
+    const full = `${window.location.origin}${relativeUrl}`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(full).catch(() => {});
+    }
+    if (btnEl) {
+      const span = btnEl.querySelector("span");
+      const orig = span ? span.textContent : "";
+      if (span) span.textContent = "Copied!";
+      setTimeout(() => { if (span) span.textContent = orig; }, 1400);
+    }
+  };
+  if ($("copyApiUrlBtn")) $("copyApiUrlBtn").addEventListener("click", () => copyUrlToClipboard($("copyApiUrlBtn"), resolveCurrentModuleShare().apiUrl));
+  if ($("copyPageUrlBtn")) $("copyPageUrlBtn").addEventListener("click", () => copyUrlToClipboard($("copyPageUrlBtn"), resolveCurrentModuleShare().pageUrl));
+  if ($("copyEmbedUrlBtn")) $("copyEmbedUrlBtn").addEventListener("click", () => copyUrlToClipboard($("copyEmbedUrlBtn"), resolveCurrentModuleShare().embedUrl));
+  window.addEventListener("popstate", () => applyRouteFromLocation());
 
   window.ERPIcons.refresh();
   refreshAll().catch(console.error);

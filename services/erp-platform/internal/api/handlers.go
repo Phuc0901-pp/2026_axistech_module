@@ -13,18 +13,32 @@ import (
 	"github.com/tanbaocorp/axisstream-erp/internal/domain"
 	"github.com/tanbaocorp/axisstream-erp/internal/realtime"
 	"github.com/tanbaocorp/axisstream-erp/internal/repository"
+	"github.com/tanbaocorp/axisstream-erp/internal/security"
 	"github.com/tanbaocorp/axisstream-erp/internal/service"
 )
 
 type Handler struct {
-	svc   *service.ERPService
-	store *repository.Store
-	hub   *realtime.Hub
-	log   *slog.Logger
+	svc    *service.ERPService
+	store  *repository.Store
+	hub    *realtime.Hub
+	log    *slog.Logger
+	tokens *security.ResourceTokenCodec
 }
 
 func NewHandler(svc *service.ERPService, store *repository.Store, hub *realtime.Hub, log *slog.Logger) *Handler {
-	return &Handler{svc: svc, store: store, hub: hub, log: log}
+	return &Handler{
+		svc:    svc,
+		store:  store,
+		hub:    hub,
+		log:    log,
+		tokens: security.NewResourceTokenCodec(""),
+	}
+}
+
+func (h *Handler) SetTokenCodec(codec *security.ResourceTokenCodec) {
+	if codec != nil {
+		h.tokens = codec
+	}
 }
 
 func writeJSON(w http.ResponseWriter, status int, data any) {
@@ -290,4 +304,352 @@ func (h *Handler) StreamEvents(w http.ResponseWriter, r *http.Request) {
 			flusher.Flush()
 		}
 	}
+}
+
+func parsePageParams(r *http.Request, defaultSize int) (int, int) {
+	page := 1
+	pageSize := defaultSize
+	if raw := strings.TrimSpace(r.URL.Query().Get("page")); raw != "" {
+		if v, err := strconv.Atoi(raw); err == nil && v > 0 {
+			page = v
+		}
+	}
+	if raw := strings.TrimSpace(r.URL.Query().Get("page_size")); raw != "" {
+		if v, err := strconv.Atoi(raw); err == nil && v > 0 {
+			if v > 100 {
+				v = 100
+			}
+			pageSize = v
+		}
+	}
+	return page, pageSize
+}
+
+func resolveForecastPoint(bundle *domain.ProjectForecastBundle, devices []domain.Device) (string, *float64, *float64, *float64, string) {
+	if bundle != nil && bundle.MetNorway.Location != nil && bundle.MetNorway.Location.Latitude != nil && bundle.MetNorway.Location.Longitude != nil {
+		return bundle.MetNorway.Location.Name, bundle.MetNorway.Location.Latitude, bundle.MetNorway.Location.Longitude, bundle.MetNorway.Location.Elevation, bundle.MetNorway.Location.TimeZone
+	}
+	for _, d := range devices {
+		if d.Coordinates != nil {
+			lat, lon := d.Coordinates.Latitude, d.Coordinates.Longitude
+			return d.Name, &lat, &lon, nil, "UTC"
+		}
+	}
+	return "", nil, nil, nil, "UTC"
+}
+
+func (h *Handler) GetModulesCatalog(w http.ResponseWriter, _ *http.Request) {
+	type deviceCatalogItem struct {
+		Token       string `json:"token"`
+		ProjectID   string `json:"project_id"`
+		ProjectName string `json:"project_name"`
+		DeviceID    string `json:"device_id"`
+		Name        string `json:"name"`
+		SourceCode  string `json:"source_code"`
+		Active      bool   `json:"active"`
+		UIURL       string `json:"ui_url"`
+		EmbedURL    string `json:"embed_url"`
+		APIURL      string `json:"api_url"`
+	}
+	type forecastCatalogItem struct {
+		Token       string   `json:"token"`
+		ProjectID   string   `json:"project_id"`
+		ProjectName string   `json:"project_name"`
+		Name        string   `json:"name"`
+		Latitude    *float64 `json:"latitude,omitempty"`
+		Longitude   *float64 `json:"longitude,omitempty"`
+		UIURL       string   `json:"ui_url"`
+		EmbedURL    string   `json:"embed_url"`
+		APIURL      string   `json:"api_url"`
+	}
+
+	devItems := make([]deviceCatalogItem, 0)
+	fcItems := make([]forecastCatalogItem, 0)
+
+	for _, p := range h.store.GetProjects() {
+		devs := h.store.GetDevices(p.ID)
+		for _, d := range devs {
+			tok, err := h.tokens.EncodeDeviceToken(p.ID, d.ID)
+			if err != nil {
+				continue
+			}
+			uiURL := "/tbsgagtech/v1/modules/devices/" + tok
+			devItems = append(devItems, deviceCatalogItem{
+				Token:       tok,
+				ProjectID:   p.ID,
+				ProjectName: p.Name,
+				DeviceID:    d.ID,
+				Name:        d.Name,
+				SourceCode:  d.SourceCode,
+				Active:      d.Active,
+				UIURL:       uiURL,
+				EmbedURL:    uiURL + "?embed=1",
+				APIURL:      "/api/tbsgagtech/v1/modules/devices/" + tok,
+			})
+		}
+
+		bundle := h.store.GetForecast(p.ID)
+		name, lat, lon, _, _ := resolveForecastPoint(bundle, devs)
+		if lat != nil && lon != nil {
+			tok, err := h.tokens.EncodeForecastToken(p.ID, *lat, *lon)
+			if err == nil {
+				if name == "" {
+					name = p.Name + " Forecast"
+				}
+				uiURL := "/tbsgagtech/v1/modules/forecast/" + tok
+				fcItems = append(fcItems, forecastCatalogItem{
+					Token:       tok,
+					ProjectID:   p.ID,
+					ProjectName: p.Name,
+					Name:        name,
+					Latitude:    lat,
+					Longitude:   lon,
+					UIURL:       uiURL,
+					EmbedURL:    uiURL + "?embed=1",
+					APIURL:      "/api/tbsgagtech/v1/modules/forecast/" + tok,
+				})
+			}
+		}
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"namespace": "tbsgagtech",
+		"standard":  "ISO-42010/ISO-27001/RFC-4648",
+		"devices":   devItems,
+		"forecasts": fcItems,
+	})
+}
+
+func (h *Handler) GetDeviceModule(w http.ResponseWriter, r *http.Request) {
+	cid := GetCorrelationID(r.Context())
+	token := strings.TrimPrefix(r.URL.Path, "/api/tbsgagtech/v1/modules/devices/")
+	token = strings.Trim(token, "/")
+	projectID, deviceID, err := h.tokens.DecodeDeviceToken(token)
+	if err != nil {
+		WriteProblemJSON(w, http.StatusBadRequest, "INVALID_RESOURCE_TOKEN", err.Error(), cid)
+		return
+	}
+
+	var dev *domain.Device
+	for _, d := range h.store.GetDevices(projectID) {
+		if d.ID == deviceID {
+			copyDev := d
+			dev = &copyDev
+			break
+		}
+	}
+	if dev == nil {
+		WriteProblemJSON(w, http.StatusNotFound, "DEVICE_NOT_FOUND", "device not found for resource token", cid)
+		return
+	}
+
+	var snap *domain.DeviceSnapshot
+	for _, s := range h.store.GetSnapshots(projectID) {
+		if s.DeviceID == deviceID {
+			copySnap := s
+			snap = &copySnap
+			break
+		}
+	}
+
+	powerLabel := "OFF"
+	powerReason := "No Signal"
+	if !dev.Active {
+		powerReason = "Disabled"
+	} else if snap != nil && snap.Status == "LIVE" && snap.LatestTimestampUTC != nil {
+		age := time.Since(snap.LatestTimestampUTC.UTC())
+		if age <= 6*time.Hour {
+			powerLabel = "ON"
+			powerReason = "Active"
+		} else {
+			powerReason = fmt.Sprintf("Offline %dh ago", int(age.Hours()))
+		}
+	}
+
+	requestedMetric := strings.TrimSpace(r.URL.Query().Get("metric"))
+	history := h.svc.GetTelemetryHistory(r.Context(), projectID, deviceID, 24, cid)
+	if len(history) == 0 && snap != nil {
+		history = snap.Readings
+	}
+
+	filtered := make([]domain.TelemetryReading, 0, len(history))
+	selectedMetric := requestedMetric
+	unit := ""
+	for _, rd := range history {
+		if selectedMetric == "" && rd.Metric != "" {
+			selectedMetric = rd.Metric
+		}
+		if selectedMetric == "" || rd.Metric == selectedMetric {
+			if unit == "" {
+				unit = rd.Unit
+			}
+			filtered = append(filtered, rd)
+		}
+	}
+
+	page, pageSize := parsePageParams(r, 10)
+	total := len(filtered)
+	start := (page - 1) * pageSize
+	if start > total {
+		start = total
+	}
+	end := start + pageSize
+	if end > total {
+		end = total
+	}
+
+	type seriesPoint struct {
+		TimeUTC string  `json:"t"`
+		Value   float64 `json:"v"`
+	}
+	pts := make([]seriesPoint, 0, len(filtered))
+	for _, rd := range filtered {
+		if rd.Value != nil {
+			pts = append(pts, seriesPoint{TimeUTC: rd.TimestampUTC.UTC().Format(time.RFC3339), Value: *rd.Value})
+		}
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"namespace":   "tbsgagtech",
+		"token":       token,
+		"ui_url":      "/tbsgagtech/v1/modules/devices/" + token,
+		"embed_url":   "/tbsgagtech/v1/modules/devices/" + token + "?embed=1",
+		"device":      dev,
+		"power_state": map[string]string{"status": powerLabel, "reason": powerReason},
+		"geolocation": map[string]any{"coordinates": dev.Coordinates, "fields": h.store.GetFields(projectID)},
+		"table":       map[string]any{"page": page, "page_size": pageSize, "total": total, "rows": filtered[start:end]},
+		"chart":       map[string]any{"metric": selectedMetric, "unit": unit, "points": pts},
+	})
+}
+
+func (h *Handler) GetForecastModule(w http.ResponseWriter, r *http.Request) {
+	cid := GetCorrelationID(r.Context())
+	token := strings.TrimPrefix(r.URL.Path, "/api/tbsgagtech/v1/modules/forecast/")
+	token = strings.Trim(token, "/")
+	projectID, lat, lon, err := h.tokens.DecodeForecastToken(token)
+	if err != nil {
+		WriteProblemJSON(w, http.StatusBadRequest, "INVALID_RESOURCE_TOKEN", err.Error(), cid)
+		return
+	}
+
+	bundle := h.store.GetForecast(projectID)
+	if bundle == nil {
+		WriteProblemJSON(w, http.StatusNotFound, "FORECAST_NOT_FOUND", "forecast not cached for project", cid)
+		return
+	}
+
+	metric := strings.TrimSpace(r.URL.Query().Get("metric"))
+	if metric == "" {
+		metric = "temperature"
+	}
+	unit := "°C"
+	chartType := "line"
+	pickVal := func(st domain.ForecastStep) *float64 {
+		switch metric {
+		case "feels_like":
+			unit = "°C"
+			return st.FeelsLike
+		case "dew_point":
+			unit = "°C"
+			return st.DewPoint
+		case "precipitation_1h":
+			unit = "mm"
+			chartType = "bar"
+			if st.Precipitation1h != nil {
+				return st.Precipitation1h
+			}
+			return st.Precipitation6h
+		case "humidity":
+			unit = "%"
+			return st.Humidity
+		case "wind_speed":
+			unit = "km/h"
+			return st.WindSpeed
+		case "pressure":
+			unit = "hPa"
+			return st.Pressure
+		case "cloud_cover":
+			unit = "%"
+			return st.CloudCover
+		case "uv_index":
+			unit = "UV"
+			return st.UVIndex
+		default:
+			metric = "temperature"
+			unit = "°C"
+			return st.Temperature
+		}
+	}
+
+	steps := bundle.MetNorway.Steps
+	type forecastRow struct {
+		TimeUTC  string   `json:"time_utc"`
+		TimeLoc  string   `json:"time_local"`
+		Symbol   string   `json:"symbol"`
+		Value    *float64 `json:"value"`
+		Unit     string   `json:"unit"`
+		Rain1h   *float64 `json:"precipitation_1h,omitempty"`
+		WindKmh  *float64 `json:"wind_speed,omitempty"`
+	}
+	type seriesPoint struct {
+		TimeUTC string  `json:"t"`
+		Value   float64 `json:"v"`
+	}
+	allRows := make([]forecastRow, 0, len(steps))
+	pts := make([]seriesPoint, 0, len(steps))
+	for _, st := range steps {
+		v := pickVal(st)
+		allRows = append(allRows, forecastRow{
+			TimeUTC: st.TimeUTC.UTC().Format(time.RFC3339),
+			TimeLoc: st.TimeLocal,
+			Symbol:  st.Symbol,
+			Value:   v,
+			Unit:    unit,
+			Rain1h:  st.Precipitation1h,
+			WindKmh: st.WindSpeed,
+		})
+		if v != nil {
+			pts = append(pts, seriesPoint{TimeUTC: st.TimeUTC.UTC().Format(time.RFC3339), Value: *v})
+		}
+	}
+
+	page, pageSize := parsePageParams(r, 10)
+	total := len(allRows)
+	start := (page - 1) * pageSize
+	if start > total {
+		start = total
+	}
+	end := start + pageSize
+	if end > total {
+		end = total
+	}
+
+	locName := "Forecast Target Point"
+	tz := "UTC"
+	var elev *float64
+	if bundle.MetNorway.Location != nil {
+		if bundle.MetNorway.Location.Name != "" {
+			locName = bundle.MetNorway.Location.Name
+		}
+		if bundle.MetNorway.Location.TimeZone != "" {
+			tz = bundle.MetNorway.Location.TimeZone
+		}
+		elev = bundle.MetNorway.Location.Elevation
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"namespace": "tbsgagtech",
+		"token":     token,
+		"ui_url":    "/tbsgagtech/v1/modules/forecast/" + token,
+		"embed_url": "/tbsgagtech/v1/modules/forecast/" + token + "?embed=1",
+		"location": map[string]any{
+			"name":      locName,
+			"latitude":  lat,
+			"longitude": lon,
+			"elevation": elev,
+			"time_zone": tz,
+		},
+		"table": map[string]any{"page": page, "page_size": pageSize, "total": total, "rows": allRows[start:end]},
+		"chart": map[string]any{"metric": metric, "unit": unit, "chart_type": chartType, "points": pts},
+	})
 }
