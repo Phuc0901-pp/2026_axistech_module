@@ -51,7 +51,7 @@ flowchart LR
 | **[06 · Operations Runbook & ADRs](docs/brain/06_OPERATIONS_RUNBOOK_AND_DECISIONS.md)** | Cài đặt, `init.js` (gitignored), `start_live.ps1`, biến môi trường bảo mật, xử lý sự cố Windows (port 8080 Adminer -> 8088) & Architecture Decision Records (`ADR-001`..`ADR-007`). |
 | **[ISO/IEC/IEEE 42010](docs/iso_architecture_42010.md)** | Tài liệu mô tả kiến trúc chính thức theo chuẩn ISO 42010:2022. |
 | **[ISO/IEC 27001](docs/iso_security_27001.md)** | Ma trận kiểm soát an toàn thông tin & mã hóa toàn hệ thống. |
-| **[ISO/IEC/IEEE 29119 Traceability](docs/traceability_matrix_29119.md)** | Ma trận truy vết yêu cầu ↔ test tự động (`UT-001`..`UT-070`, `G-UT-001`..`G-UT-045`). |
+| **[ISO/IEC/IEEE 29119 Traceability](docs/traceability_matrix_29119.md)** | Ma trận truy vết yêu cầu ↔ test tự động (`UT-001`..`UT-071`, `G-UT-001`..`G-UT-048`). |
 
 ---
 

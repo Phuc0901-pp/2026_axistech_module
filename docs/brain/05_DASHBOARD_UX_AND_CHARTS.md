@@ -34,8 +34,8 @@ Go `router.go` nhúng toàn bộ giao diện bằng `//go:embed static` vào m�
 ## 3. Phân hệ Nghiệp vụ ERP (9 Tabs) & Tab Compliance
 
 - **Telemetry Streams (`#tab-telemetry`)**: Lưới đồ thị thành phần `#telemetryComponentCharts` cho toàn bộ Workspace kèm bảng snapshot chuẩn ISO 80000.
-- **Weather Forecast (`#tab-forecast`)**: 6 đồ thị thành phần `#forecastComponentCharts` (Temp & Feels Like, Hourly Rain, Humidity, Wind Speed, Pressure, Cloud & UV) + Jane's Spray Window.
-- **Weather Exchange (`#tab-exchange`)**: 15 đồ thị thành phần `#exchangeComponentCharts` phủ đủ các cột số của bảng 17 cột `tbncorp.weather` + xuất CSV RFC 4180.
+- **Weather Forecast (`#tab-forecast`)**: Dải biểu tượng theo giờ `#forecastSymbolStrip` tô màu theo từng symbol, 7 đồ thị thành phần `#forecastComponentCharts` (Temp/Feels/Dew, Hourly Rain bar, Humidity, Wind Speed, Pressure, Cloud Cover, UV Index) + Jane's Spray Window.
+- **API Module Device (`#tab-api-module`)** *(thay thế Weather Exchange trên UI)*: Gồm **2 mode `Devices` và `Forecast`**, bản đồ Google Satellite `#apiModuleMap` định vị thiết bị đang chọn hoặc địa điểm bị forecast (`met_norway.location` -> GeoJSON/Device fallback), và cặp bố cục **1 Dữ liệu (bảng `10 record/trang`) + 1 Đồ thị dữ liệu đơn trục Y (`#apiModuleChartCanvas`)**.
 - **Compliance & Security (`#tab-audit`)**:
   - Thẻ `#securityPostureGrid` & `#securityOverallBadge` hiển thị trạng thái thực từ `GET /api/erp/v1/security/status`: **At-Rest Encryption (`AES-256-GCM`)**, **Audit Chain (`SHA-256 VERIFIED / BROKEN`)**, **Rate Limit (`300 RPM`)**, **Mutation Guard (`X-API-Key`)**, **CSP & HSTS**.
-  - Bảng Audit Trail hiển thị cột **`Chain Hash`** (`entry_hash` rút gọn + tooltip `prev_hash`) giúp kiểm toán viên xác minh tính toàn vẹn tức thì.
+  - Bảng Audit Trail phân trang `20` dòng/trang hiển thị cột **`Chain Hash`** (`entry_hash` rút gọn + tooltip `prev_hash`) giúp kiểm toán viên xác minh tính toàn vẹn tức thì.

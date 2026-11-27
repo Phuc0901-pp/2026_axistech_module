@@ -434,3 +434,29 @@ canvas.erp-canvas-sm { height: 195px; }
 .page-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 .page-btn.active { background: var(--accent); color: #052236; border-color: var(--accent); }
 .page-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* API Module Device: Mode Tabs, 1 Data + 1 Graph Layout & Forecast Pin */
+.api-module-mode-tabs {
+  display: inline-flex; gap: 4px; padding: 3px; background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: 9px;
+}
+.mode-tab-btn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px;
+  border: 1px solid transparent; border-radius: 7px; background: transparent;
+  color: var(--muted); font-size: 0.8rem; font-weight: 600; cursor: pointer;
+}
+.mode-tab-btn svg { width: 14px; height: 14px; }
+.mode-tab-btn.active {
+  background: var(--accent); color: #052236; border-color: var(--accent);
+}
+.api-module-pair-grid {
+  display: grid; grid-template-columns: 1.15fr 1fr; gap: 16px; align-items: start;
+}
+@media (max-width: 1120px) { .api-module-pair-grid { grid-template-columns: 1fr; } }
+.forecast-pin-marker {
+  width: 52px; height: 52px; border-radius: 50%; background: rgba(15, 23, 42, 0.92);
+  border: 2.5px solid var(--accent); display: grid; place-items: center;
+}
+.axs-marker-core.selected {
+  border-color: #22c55e; box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.35), 0 6px 14px rgba(0,0,0,0.45);
+}

@@ -113,7 +113,11 @@
 | REQ-SEC-13: SHA-256 Tamper-Evident Audit Chain | ERP-SEC-T2 | G-UT-039 | Link `AuditEntry` via `prev_hash -> entry_hash` and detect forged details |
 | REQ-SEC-14: Encrypted Store & Security Status API | ERP-SEC-T3 | G-UT-040 | Persist encrypted `erp_state.json` & expose `/api/erp/v1/security/status` |
 | REQ-UI-06: Pure Lucide AxisTech ERP Workflow | ERP-SEC-T4 | G-UT-041 | Verify 100% Lucide icons (zero chibi/removed legacy) & 3-step ERP cascading UI |
-| REQ-UI-07: Split Component Graphs & Favicon | ERP-SEC-T5 | G-UT-042 | HiDPI `renderRealtimeSeries`, split component grids, security grid & `/favicon.svg` |
+| REQ-UI-07: API Module Device, Split Graphs & Favicon | ERP-SEC-T5 | G-UT-042 | HiDPI `renderRealtimeSeries`, `#tab-api-module` (no `#tab-exchange`), security grid & `/favicon.svg` |
 | REQ-P0-04: Go BridgeClient History Proxy | ERP-P11-T1 | G-UT-043 | `FetchTelemetryHistory` calls bridge `/telemetry/history` with query |
 | REQ-P0-03: ERP Telemetry History Proxy | ERP-SEC-T7 | G-UT-044 | Serve `/api/erp/v1/telemetry/history` & hydrate UI split graphs across `F5` |
 | REQ-SEC-15: Per-IP Rate Limit & API Key Guard | ERP-SEC-T6 | G-UT-045 | Enforce constant-time `X-API-Key` on `POST` mutations (`401`) & sliding-window `429` |
+| REQ-FC-03: MET Norway WGS84 Location Extract | AXS-API-T1 | UT-071 | Extract forecast `location.{name, latitude, longitude, elevation, time_zone}` within WGS84 bounds |
+| REQ-UI-08: API Module 1 Data + 1 Graph (10/page) | ERP-API-T1 | G-UT-046 | Verify `Devices` & `Forecast` modes, `API_MODULE_PAGE_SIZE = 10` & single-scale paired view |
+| REQ-GEO-02: Forecast Geolocation Map & Guard | ERP-API-T2 | G-UT-047 | Verify `renderForecastLocation`, `forecastGroup` & `resolveForecastLocation` WGS84 guard |
+| REQ-API-08: Forecast & Device Coords API | ERP-API-T3 | G-UT-048 | Verify `/api/erp/v1/forecast` & `/devices` serve live target coordinates for map pin |

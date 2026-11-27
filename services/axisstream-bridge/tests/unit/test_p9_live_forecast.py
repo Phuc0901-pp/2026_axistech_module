@@ -296,3 +296,27 @@ async def test_ut_062_live_provider_end_to_end_sync() -> None:
         assert len(rows) == 1 and rows[0].temperature_avg == pytest.approx(36.4)
     finally:
         await http.aclose()
+
+
+def test_ut_071_metnorway_forecast_location_coordinates_wgs84() -> None:
+    payload = {
+        "location": {
+            "name": "Long Tân",
+            "latitude": 11.6901,
+            "longitude": 106.8495,
+            "elevation": 42.0,
+            "timeZone": "Asia/Phnom_Penh",
+            "utcOffsetMinutes": 420,
+        },
+        "days": [],
+        "steps": [],
+    }
+    report = AxisStreamForecastClient.map_metnorway_payload(payload)
+    assert report.location is not None
+    assert report.location.name == "Long Tân"
+    assert report.location.latitude == pytest.approx(11.6901)
+    assert report.location.longitude == pytest.approx(106.8495)
+    assert report.location.elevation == pytest.approx(42.0)
+    assert report.location.time_zone == "Asia/Phnom_Penh"
+    assert -90.0 <= report.location.latitude <= 90.0
+    assert -180.0 <= report.location.longitude <= 180.0

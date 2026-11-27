@@ -10,6 +10,7 @@ window.SatelliteMapEngine = class SatelliteMapEngine {
     this.fieldGroup = null;
     this.deviceGroup = null;
     this.assetGroup = null;
+    this.forecastGroup = null;
     this.layerVis = { fields: true, devices: true, assets: true };
     this._lastBounds = null;
     this._lastProjectId = null;
@@ -46,6 +47,7 @@ window.SatelliteMapEngine = class SatelliteMapEngine {
     this.fieldGroup = L.layerGroup().addTo(this.map);
     this.deviceGroup = L.layerGroup().addTo(this.map);
     this.assetGroup = L.layerGroup().addTo(this.map);
+    this.forecastGroup = L.layerGroup().addTo(this.map);
 
     this.map.on("mousemove", (ev) => {
       const out = document.getElementById(this.coordReadoutId);
@@ -79,9 +81,9 @@ window.SatelliteMapEngine = class SatelliteMapEngine {
     }
   }
 
-  focusCoordinate(lat, lon) {
-    if (this.map && lat != null && lon != null) {
-      this.map.setView([lat, lon], 18, { animate: true });
+  focusCoordinate(lat, lon, zoom = 18) {
+    if (this.map && Number.isFinite(Number(lat)) && Number.isFinite(Number(lon))) {
+      this.map.setView([Number(lat), Number(lon)], zoom, { animate: true });
     }
   }
 
@@ -98,7 +100,7 @@ window.SatelliteMapEngine = class SatelliteMapEngine {
     return Math.abs((area * R * R) / 2) / 10000;
   }
 
-  render(data, projectId = "") {
+  render(data, projectId = "", opts = {}) {
     this._cachedData = data;
     this.init();
     if (!this.map) return;
@@ -106,9 +108,12 @@ window.SatelliteMapEngine = class SatelliteMapEngine {
     this.fieldGroup.clearLayers();
     this.deviceGroup.clearLayers();
     this.assetGroup.clearLayers();
+    if (this.forecastGroup) this.forecastGroup.clearLayers();
 
     const bounds = L.latLngBounds([]);
     const snapMap = Object.fromEntries((data.snapshots || []).map((s) => [s.device_id, s]));
+    const selectedId = opts.selectedDeviceId || "";
+    let focusedCoords = null;
 
     // 1. GeoJSON Fields
     (data.fields || []).forEach((fld) => {
@@ -141,10 +146,12 @@ window.SatelliteMapEngine = class SatelliteMapEngine {
         ? window.ERPIcons.deviceIconHtml(dev.source_code, 18)
         : `<i data-lucide="cpu"></i>`;
 
+      const isSelected = Boolean(selectedId && dev.id === selectedId);
+      if (isSelected) focusedCoords = latlng;
       const ringCls = snap.status === "NO_DATA" || snap.status === "OFFLINE" ? "nodata" : "";
       const iconHtml = `<div class="axs-marker-wrap">
         <span class="axs-marker-ring ${ringCls}"></span>
-        <span class="axs-marker-core">${innerSvg}</span>
+        <span class="axs-marker-core ${isSelected ? "selected" : ""}">${innerSvg}</span>
       </div>`;
 
       const marker = L.marker(latlng, {
@@ -188,7 +195,80 @@ window.SatelliteMapEngine = class SatelliteMapEngine {
     const firstRender = !this._lastBounds;
     this._lastBounds = bounds;
     if (projectId) this._lastProjectId = projectId;
-    if ((firstRender || projectChanged) && bounds.isValid()) this.fitBounds();
+    if (focusedCoords) this.focusCoordinate(focusedCoords[0], focusedCoords[1], 17);
+    else if ((firstRender || projectChanged) && bounds.isValid()) this.fitBounds();
+    if (typeof lucide !== "undefined") lucide.createIcons();
+  }
+
+  renderForecastLocation(location, currentStep = null, fields = []) {
+    this.init();
+    if (!this.map) return;
+
+    this.fieldGroup.clearLayers();
+    this.deviceGroup.clearLayers();
+    this.assetGroup.clearLayers();
+    if (this.forecastGroup) this.forecastGroup.clearLayers();
+
+    const bounds = L.latLngBounds([]);
+    (fields || []).forEach((fld) => {
+      (fld.sites || []).forEach((site) => {
+        if (!site.geojson) return;
+        const layer = L.geoJSON(site.geojson, {
+          style: { color: "#38bdf8", weight: 2, fillColor: "#0ea5e9", fillOpacity: 0.14 },
+        });
+        layer.addTo(this.fieldGroup);
+        try {
+          const b = layer.getBounds();
+          if (b.isValid()) bounds.extend(b);
+        } catch (_) {}
+      });
+    });
+
+    const lat = Number(location?.latitude);
+    const lon = Number(location?.longitude);
+    if (Number.isFinite(lat) && Number.isFinite(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
+      const sym = currentStep?.symbol || "cloud-sun";
+      const symMeta = window.ERPIcons
+        ? window.ERPIcons.getWeatherSymbolMeta(sym)
+        : { color: "#38bdf8", bg: "rgba(56,189,248,0.18)", border: "#38bdf8", label: sym };
+      const symHtml = window.ERPIcons
+        ? window.ERPIcons.weatherSymbolHtml(sym, 22)
+        : `<i data-lucide="cloud-sun"></i>`;
+
+      L.circle([lat, lon], {
+        radius: 450,
+        color: symMeta.color,
+        weight: 2,
+        fillColor: symMeta.color,
+        fillOpacity: 0.14,
+      }).addTo(this.forecastGroup);
+
+      const tempStr = currentStep?.temperature != null ? `${Number(currentStep.temperature).toFixed(1)} °C` : "-";
+      const rhStr = currentStep?.humidity != null ? `${Number(currentStep.humidity).toFixed(0)} %` : "-";
+      const rainStr = currentStep?.precipitation_1h != null ? `${Number(currentStep.precipitation_1h).toFixed(1)} mm` : "0.0 mm";
+      const elevStr = location?.elevation != null ? ` · Elev: ${location.elevation} m` : "";
+      const markerHtml = `<div class="forecast-pin-marker" style="border-color:${symMeta.color};box-shadow:0 0 18px ${symMeta.color}66;">${symHtml}</div>`;
+
+      const fMarker = L.marker([lat, lon], {
+        icon: L.divIcon({ className: "", html: markerHtml, iconSize: [52, 52], iconAnchor: [26, 26] }),
+      });
+      fMarker.bindPopup(`
+        <div class="map-popup">
+          <div class="map-popup-head">${location?.name || "Forecast Target Location"}</div>
+          <div class="mono" style="color:var(--muted)">GPS: ${lat.toFixed(5)}, ${lon.toFixed(5)}${elevStr}</div>
+          <div>Source: <strong>${location?.source || "MET Norway (AxisStream)"}</strong></div>
+          <div>Condition: <strong>${symMeta.label}</strong></div>
+          <div>Temp: <strong>${tempStr}</strong> · RH: <strong>${rhStr}</strong> · Rain: <strong>${rainStr}</strong></div>
+        </div>
+      `);
+      fMarker.addTo(this.forecastGroup);
+      bounds.extend([lat, lon]);
+      this._lastBounds = bounds;
+      this.focusCoordinate(lat, lon, 14);
+    } else if (bounds.isValid()) {
+      this._lastBounds = bounds;
+      this.fitBounds();
+    }
     if (typeof lucide !== "undefined") lucide.createIcons();
   }
 };

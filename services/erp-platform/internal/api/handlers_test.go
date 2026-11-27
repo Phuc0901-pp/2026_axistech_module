@@ -24,7 +24,11 @@ func (a *apiTestBridge) FetchProjects(_ context.Context, _ string) ([]domain.Pro
 	return []domain.Project{{ID: "p1", Name: "TANBAOCORP_Demo", Organisation: domain.Organisation{SchemaName: "tbncorp"}}}, nil
 }
 func (a *apiTestBridge) FetchDevices(_ context.Context, _ string, _ string) ([]domain.Device, error) {
-	return []domain.Device{{ID: "d1", Name: "Weather", ExternalID: "79DAAFB4", SourceCode: "weather", Active: true}}, nil
+	lat, lon := 11.6901, 106.8495
+	return []domain.Device{{
+		ID: "d1", Name: "Weather", ExternalID: "79DAAFB4", SourceCode: "weather", Active: true,
+		Coordinates: &domain.Coordinates{Latitude: lat, Longitude: lon},
+	}}, nil
 }
 func (a *apiTestBridge) FetchTelemetry(_ context.Context, _ string, _ string) ([]domain.DeviceSnapshot, error) {
 	return []domain.DeviceSnapshot{{DeviceID: "d1", ExternalID: "79DAAFB4", SourceCode: "weather", Status: "LIVE"}}, nil
@@ -48,9 +52,15 @@ func (a *apiTestBridge) FetchWeatherExchange(_ context.Context, _ string, _ stri
 	return nil, nil, nil
 }
 func (a *apiTestBridge) FetchWeatherForecast(_ context.Context, pid string, _ string) (*domain.ProjectForecastBundle, error) {
+	lat, lon := 11.6901, 106.8495
 	return &domain.ProjectForecastBundle{
-		ProjectID:    pid,
-		MetNorway:    domain.WeatherForecastReport{Provider: "MET Norway", Status: "CONNECTED", Days: []domain.ForecastDay{{Date: "2026-11-26"}}},
+		ProjectID: pid,
+		MetNorway: domain.WeatherForecastReport{
+			Provider: "MET Norway",
+			Status:   "CONNECTED",
+			Location: &domain.ForecastLocation{Name: "Long Tân", Latitude: &lat, Longitude: &lon, TimeZone: "Asia/Phnom_Penh"},
+			Days:     []domain.ForecastDay{{Date: "2026-11-26"}},
+		},
 		JanesWeather: domain.WeatherForecastReport{Provider: "Jane's Weather", Status: "DISCONNECTED"},
 	}, nil
 }
@@ -426,13 +436,20 @@ func TestGUT042_RealtimeChartsEngineAndFavicon(t *testing.T) {
 	htmlRec := httptest.NewRecorder()
 	router.ServeHTTP(htmlRec, httptest.NewRequest(http.MethodGet, "/", nil))
 	html := htmlRec.Body.String()
+	if strings.Contains(html, `id="tab-exchange"`) || strings.Contains(html, `data-tab="exchange"`) {
+		t.Fatal("index.html must not contain removed Weather Exchange tab")
+	}
 	for _, canvasID := range []string{
+		`data-tab="api-module"`,
+		`id="tab-api-module"`,
+		`id="apiModuleMap"`,
+		`id="apiModuleChartCanvas"`,
+		`id="apiModuleTableBody"`,
+		`id="apiModulePagination"`,
 		`id="productRealtimeCanvas"`,
-		`id="exchangeRealtimeCanvas"`,
 		`id="trendCanvas"`,
 		`id="forecastCanvas"`,
 		`id="componentChartsGrid"`,
-		`id="exchangeComponentCharts"`,
 		`id="forecastComponentCharts"`,
 		`id="forecastSymbolStrip"`,
 		`id="alertHistoryPagination"`,
@@ -444,6 +461,60 @@ func TestGUT042_RealtimeChartsEngineAndFavicon(t *testing.T) {
 		if !strings.Contains(html, canvasID) {
 			t.Fatalf("index.html missing ERP element %s", canvasID)
 		}
+	}
+}
+
+func TestGUT046_ApiModuleDeviceModesAnd10RowPagination(t *testing.T) {
+	router, _ := setupTestRouter(t)
+	htmlRec := httptest.NewRecorder()
+	router.ServeHTTP(htmlRec, httptest.NewRequest(http.MethodGet, "/", nil))
+	html := htmlRec.Body.String()
+	for _, tok := range []string{`data-api-mode="devices"`, `data-api-mode="forecast"`, `id="apiModuleDeviceSelect"`} {
+		if !strings.Contains(html, tok) {
+			t.Fatalf("index.html missing API Module Device control %s", tok)
+		}
+	}
+
+	appRec := httptest.NewRecorder()
+	router.ServeHTTP(appRec, httptest.NewRequest(http.MethodGet, "/js/app.js", nil))
+	appJs := appRec.Body.String()
+	for _, sym := range []string{"API_MODULE_PAGE_SIZE = 10", "renderApiModuleDevice", "API_FORECAST_METRICS"} {
+		if !strings.Contains(appJs, sym) {
+			t.Fatalf("app.js missing API Module Device symbol %q", sym)
+		}
+	}
+}
+
+func TestGUT047_ForecastLocationMapAndWGS84Guard(t *testing.T) {
+	router, _ := setupTestRouter(t)
+	mapRec := httptest.NewRecorder()
+	router.ServeHTTP(mapRec, httptest.NewRequest(http.MethodGet, "/js/map-engine.js", nil))
+	mapJs := mapRec.Body.String()
+	for _, sym := range []string{"forecastGroup", "renderForecastLocation", "lat >= -90 && lat <= 90"} {
+		if !strings.Contains(mapJs, sym) {
+			t.Fatalf("map-engine.js missing forecast geolocation symbol %q", sym)
+		}
+	}
+
+	appRec := httptest.NewRecorder()
+	router.ServeHTTP(appRec, httptest.NewRequest(http.MethodGet, "/js/app.js", nil))
+	if !strings.Contains(appRec.Body.String(), "resolveForecastLocation") {
+		t.Fatal("app.js missing resolveForecastLocation helper")
+	}
+}
+
+func TestGUT048_ForecastLocationAndDeviceCoordsAPI(t *testing.T) {
+	router, _ := setupTestRouter(t)
+	fcRec := httptest.NewRecorder()
+	router.ServeHTTP(fcRec, httptest.NewRequest(http.MethodGet, "/api/erp/v1/forecast?project_id=p1", nil))
+	if fcRec.Code != http.StatusOK || !strings.Contains(fcRec.Body.String(), "11.6901") || !strings.Contains(fcRec.Body.String(), "106.8495") {
+		t.Fatalf("forecast response missing target location coordinates: %s", fcRec.Body.String())
+	}
+
+	devRec := httptest.NewRecorder()
+	router.ServeHTTP(devRec, httptest.NewRequest(http.MethodGet, "/api/erp/v1/devices?project_id=p1", nil))
+	if devRec.Code != http.StatusOK || !strings.Contains(devRec.Body.String(), "11.6901") {
+		t.Fatalf("devices response missing coordinates: %s", devRec.Body.String())
 	}
 }
 

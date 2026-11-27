@@ -2,6 +2,7 @@
 (() => {
   const MAX_SERIES_POINTS = 48;
   const PAGE_SIZE = 20;
+  const API_MODULE_PAGE_SIZE = 10;
 
   const state = {
     projectId: "",
@@ -9,6 +10,11 @@
     selectedMetricFilter: "ALL",
     auditPage: 1,
     alertHistoryPage: 1,
+    apiModuleMode: "devices",
+    apiModuleDeviceId: "",
+    apiModuleMetric: "",
+    apiModuleForecastMetric: "temperature",
+    apiModulePage: 1,
     theme: localStorage.getItem("axs_theme") || "dark",
     dash: null,
     security: null,
@@ -269,6 +275,9 @@
   const fullMap = new window.SatelliteMapEngine("fullMap", "fullCoords", {
     onInspectDevice: openInspectorForDevice,
   });
+  const apiModuleMap = new window.SatelliteMapEngine("apiModuleMap", "apiModuleCoords", {
+    onInspectDevice: openInspectorForDevice,
+  });
 
   function switchTab(tabName) {
     document.querySelectorAll(".nav-item").forEach((b) => b.classList.toggle("active", b.dataset.tab === tabName));
@@ -284,8 +293,9 @@
     if (tabName === "telemetry") {
       setTimeout(() => renderTelemetryTrendChart(), 40);
     }
-    if (tabName === "exchange") {
-      setTimeout(() => renderExchangeRealtimeChart(), 40);
+    if (tabName === "api-module") {
+      apiModuleMap.invalidateSize();
+      setTimeout(() => renderApiModuleDevice(), 40);
     }
   }
 
@@ -648,7 +658,7 @@
     const kpis = [
       ["AxisTech IoT Fleet", d.total_devices, `${onCount} ON · ${offCount} OFF (${d.live_devices} LIVE)`, "cpu"],
       ["Open Incidents", d.open_incidents, `${d.acknowledged_incidents} Acknowledged · ${d.active_policies} Policies`, "bell-ring"],
-      ["Weather Exchange", d.exchange_rows, `${d.total_fields} Fields · ${d.total_assets} Assets`, "database"],
+      ["Fields & Assets", d.total_fields, `${d.total_assets} Assets · ${d.providers?.length || 0} Providers`, "satellite"],
       ["ISO 27001 Security", sec.audit_chain_verified !== false ? "VERIFIED" : "ALERT", `Crypto: ${encLabel}`, "shield-check"],
     ];
     $("kpiGrid").innerHTML = kpis.map(([lbl, val, sub, icon]) => `
@@ -907,7 +917,270 @@
     `).join("") || '<div class="kpi-sub">No connected external providers</div>';
   }
 
-  function renderAlertsAndExchange(incidents, policies, history, tokens, rows) {
+  function resolveForecastLocation(forecast, devices = [], fields = []) {
+    const ml = forecast?.met_norway?.location;
+    if (ml && Number.isFinite(Number(ml.latitude)) && Number.isFinite(Number(ml.longitude))) {
+      return {
+        name: ml.name || "AxisStream Forecast Site",
+        latitude: Number(ml.latitude),
+        longitude: Number(ml.longitude),
+        elevation: ml.elevation ?? null,
+        time_zone: ml.time_zone || "UTC",
+        source: "MET Norway Location (AxisStream HQ)",
+      };
+    }
+    const ws = (devices || []).find((d) => d.source_code === "weather" && d.coordinates) || (devices || []).find((d) => d.coordinates);
+    if (ws && ws.coordinates) {
+      return {
+        name: `${ws.name} (Fallback)`,
+        latitude: Number(ws.coordinates.latitude),
+        longitude: Number(ws.coordinates.longitude),
+        elevation: null,
+        time_zone: "UTC",
+        source: "Active Device Coordinates",
+      };
+    }
+    for (const f of fields || []) {
+      for (const s of f.sites || []) {
+        const ring = s.geojson?.coordinates?.[0];
+        if (Array.isArray(ring) && ring.length) {
+          const avgLon = ring.reduce((acc, pt) => acc + Number(pt[0]), 0) / ring.length;
+          const avgLat = ring.reduce((acc, pt) => acc + Number(pt[1]), 0) / ring.length;
+          if (Number.isFinite(avgLat) && Number.isFinite(avgLon)) {
+            return {
+              name: f.name || s.name || "Field Centroid",
+              latitude: avgLat,
+              longitude: avgLon,
+              elevation: null,
+              time_zone: "UTC",
+              source: "Field GeoJSON Centroid",
+            };
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  const API_FORECAST_METRICS = [
+    { key: "temperature", title: "Air Temperature", unit: "°C", color: "#38bdf8", chartType: "line", pick: (s) => s.temperature },
+    { key: "feels_like", title: "Feels Like Temperature", unit: "°C", color: "#f59e0b", chartType: "line", pick: (s) => s.feels_like },
+    { key: "dew_point", title: "Dew Point", unit: "°C", color: "#22c55e", chartType: "line", pick: (s) => s.dew_point },
+    { key: "precipitation_1h", title: "Hourly Precipitation", unit: "mm", color: "#0ea5e9", chartType: "bar", pick: (s) => s.precipitation_1h ?? s.precipitation_6h },
+    { key: "humidity", title: "Relative Humidity", unit: "%", color: "#14b8a6", chartType: "line", pick: (s) => s.humidity },
+    { key: "wind_speed", title: "Wind Speed", unit: "km/h", color: "#a78bfa", chartType: "line", pick: (s) => s.wind_speed },
+    { key: "pressure", title: "Atmospheric Pressure", unit: "hPa", color: "#60a5fa", chartType: "line", pick: (s) => s.pressure },
+    { key: "cloud_cover", title: "Cloud Cover", unit: "%", color: "#94a3b8", chartType: "line", pick: (s) => s.cloud_cover },
+    { key: "uv_index", title: "UV Index", unit: "UV", color: "#facc15", chartType: "line", pick: (s) => s.uv_index },
+  ];
+
+  function renderApiModuleDevice() {
+    if (!$("tab-api-module")) return;
+    const isDevices = state.apiModuleMode !== "forecast";
+    document.querySelectorAll(".mode-tab-btn[data-api-mode]").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.apiMode === (isDevices ? "devices" : "forecast"));
+    });
+    if ($("apiModuleDeviceControls")) $("apiModuleDeviceControls").style.display = isDevices ? "flex" : "none";
+    if ($("apiModuleForecastControls")) $("apiModuleForecastControls").style.display = isDevices ? "none" : "flex";
+
+    const devices = state.dash?.devices || [];
+    const snapshots = state.dash?.snapshots || [];
+    const snapMap = Object.fromEntries(snapshots.map((s) => [s.device_id, s]));
+
+    if (isDevices) {
+      if (!devices.some((d) => d.id === state.apiModuleDeviceId)) {
+        const liveDev = devices.find((d) => getDevicePowerState(d, snapMap[d.id]).isOn);
+        state.apiModuleDeviceId = liveDev?.id || devices[0]?.id || "";
+      }
+      const selEl = $("apiModuleDeviceSelect");
+      if (selEl) {
+        selEl.innerHTML = devices.map((d) => {
+          const pw = getDevicePowerState(d, snapMap[d.id]);
+          return `<option value="${d.id}">${d.name} (${d.external_id}) · ${pw.label}</option>`;
+        }).join("") || '<option value="">No devices synced</option>';
+        selEl.value = state.apiModuleDeviceId;
+      }
+
+      const dev = devices.find((d) => d.id === state.apiModuleDeviceId);
+      const snap = snapMap[dev?.id] || { status: "NO_DATA", readings: [] };
+      const devBuf = (dev && state.seriesHistory[dev.id]) || {};
+      const metricKeys = Object.keys(devBuf).filter((k) => devBuf[k]?.length);
+      if (!metricKeys.includes(state.apiModuleMetric)) {
+        state.apiModuleMetric = metricKeys[0] || snap.readings?.[0]?.metric || "";
+      }
+
+      if ($("apiModuleMetricPills")) {
+        $("apiModuleMetricPills").innerHTML = metricKeys.map((k) => {
+          const lbl = devBuf[k][0]?.label || SINGLE_METRIC_META[k]?.title || k;
+          return `<button type="button" class="metric-pill ${state.apiModuleMetric === k ? "active" : ""}" data-dev-metric="${k}">${lbl}</button>`;
+        }).join("") || `<span class="kpi-sub">No active telemetry series for this device yet</span>`;
+
+        $("apiModuleMetricPills").querySelectorAll("[data-dev-metric]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            state.apiModuleMetric = btn.dataset.devMetric;
+            state.apiModulePage = 1;
+            renderApiModuleDevice();
+          });
+        });
+      }
+
+      if ($("apiModuleMapTitle")) $("apiModuleMapTitle").textContent = dev ? `Device Geolocation: ${dev.name} (${dev.external_id})` : "Device Geolocation";
+      if ($("apiModuleLocationBadge")) {
+        $("apiModuleLocationBadge").innerHTML = dev ? powerBadge(dev, snap) : `<span class="badge badge-muted">NO DEVICE</span>`;
+      }
+      if ($("apiModuleGeoSummary")) {
+        $("apiModuleGeoSummary").textContent = dev?.coordinates
+          ? `GPS: ${Number(dev.coordinates.latitude).toFixed(5)}, ${Number(dev.coordinates.longitude).toFixed(5)} · ${dev.comm_type || "IoT"}`
+          : "Device has no fixed GPS — showing workspace GeoJSON";
+      }
+
+      apiModuleMap.render({ fields: state.fields, devices, snapshots, assets: state.assets }, state.projectId, {
+        selectedDeviceId: dev?.id || "",
+      });
+
+      const points = (state.apiModuleMetric && devBuf[state.apiModuleMetric]) ? devBuf[state.apiModuleMetric] : [];
+      const meta = SINGLE_METRIC_META[state.apiModuleMetric] || {};
+      const metricLabel = points[0]?.label || meta.title || state.apiModuleMetric || "Telemetry";
+      const metricUnit = points[0]?.unit || meta.unit || "";
+      const metricColor = meta.color || "#38bdf8";
+
+      const vals = points.map((p) => Number(p.v)).filter((n) => isFinite(n));
+      const minV = vals.length ? Math.min(...vals).toFixed(2) : "-";
+      const maxV = vals.length ? Math.max(...vals).toFixed(2) : "-";
+      const avgV = vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2) : "-";
+      const latestV = vals.length ? vals[vals.length - 1].toFixed(2) : "-";
+
+      if ($("apiModuleMetricTitle")) $("apiModuleMetricTitle").innerHTML = `<i data-lucide="table"></i><span>1 Data + 1 Graph — ${dev?.name || "Device"} · ${metricLabel}</span>`;
+      if ($("apiModuleMetricStats")) {
+        $("apiModuleMetricStats").innerHTML = `<span class="stat-pill">Latest <strong>${latestV} ${metricUnit}</strong></span><span class="stat-pill">Min <strong>${minV}</strong></span><span class="stat-pill">Avg <strong>${avgV}</strong></span><span class="stat-pill">Max <strong>${maxV}</strong></span>`;
+      }
+      if ($("apiModuleChartHeader")) $("apiModuleChartHeader").textContent = `${metricLabel}${metricUnit ? ` (${metricUnit})` : ""}`;
+      if ($("apiModuleChartBadge")) $("apiModuleChartBadge").textContent = `${latestV} ${metricUnit}`.trim();
+
+      const reversedPts = [...points].reverse();
+      const safePage = renderTablePagination(
+        $("apiModulePagination"),
+        reversedPts.length,
+        state.apiModulePage,
+        API_MODULE_PAGE_SIZE,
+        (nextPage) => {
+          state.apiModulePage = nextPage;
+          renderApiModuleDevice();
+        }
+      );
+      state.apiModulePage = safePage;
+      const pageRows = reversedPts.slice((safePage - 1) * API_MODULE_PAGE_SIZE, safePage * API_MODULE_PAGE_SIZE);
+
+      $("apiModuleTableHead").innerHTML = `<tr><th>Timestamp</th><th>Device</th><th>Metric</th><th>Value</th><th>Unit</th><th>Power</th></tr>`;
+      $("apiModuleTableBody").innerHTML = pageRows.map((pt) => `
+        <tr>
+          <td>${pt.t}</td>
+          <td>${dev?.name || "-"}</td>
+          <td>${metricLabel}</td>
+          <td><strong>${Number(pt.v).toFixed(2)}</strong></td>
+          <td>${metricUnit || "-"}</td>
+          <td>${dev ? powerBadge(dev, snap) : "-"}</td>
+        </tr>
+      `).join("") || `<tr><td colspan="6">No records for selected device metric</td></tr>`;
+
+      window.ERPCharts.renderRealtimeSeries($("apiModuleChartCanvas"), $("apiModuleChartTooltip"), {
+        height: 290,
+        series: points.length ? [{ label: metricLabel, unit: metricUnit, color: metricColor, points }] : [],
+        emptyText: "Waiting for telemetry samples for this device...",
+      });
+    } else {
+      const met = state.forecast?.met_norway || { status: "DISCONNECTED", steps: [] };
+      const steps = met.steps || [];
+      const curStep = steps[met.current_step_index || 0] || steps[0] || null;
+      const loc = resolveForecastLocation(state.forecast, devices, state.fields);
+
+      if ($("apiModuleForecastMetricPills")) {
+        $("apiModuleForecastMetricPills").innerHTML = API_FORECAST_METRICS.map((fm) => `
+          <button type="button" class="metric-pill ${state.apiModuleForecastMetric === fm.key ? "active" : ""}" data-fc-metric="${fm.key}">${fm.title}</button>
+        `).join("");
+        $("apiModuleForecastMetricPills").querySelectorAll("[data-fc-metric]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            state.apiModuleForecastMetric = btn.dataset.fcMetric;
+            state.apiModulePage = 1;
+            renderApiModuleDevice();
+          });
+        });
+      }
+
+      if ($("apiModuleMapTitle")) $("apiModuleMapTitle").textContent = loc ? `Forecast Location: ${loc.name}` : "Forecast Geolocation";
+      if ($("apiModuleLocationBadge")) {
+        $("apiModuleLocationBadge").innerHTML = curStep ? window.ERPIcons.weatherSymbolBadgeHtml(curStep.symbol) : badge(met.status || "DISCONNECTED");
+      }
+      if ($("apiModuleGeoSummary")) {
+        $("apiModuleGeoSummary").textContent = loc
+          ? `GPS: ${loc.latitude.toFixed(5)}, ${loc.longitude.toFixed(5)}${loc.elevation != null ? ` · Elev: ${loc.elevation}m` : ""} · ${loc.time_zone} (${loc.source})`
+          : "No WGS84 forecast coordinates returned";
+      }
+
+      apiModuleMap.renderForecastLocation(loc, curStep, state.fields);
+
+      const fm = API_FORECAST_METRICS.find((x) => x.key === state.apiModuleForecastMetric) || API_FORECAST_METRICS[0];
+      const fcPoints = steps
+        .filter((s) => fm.pick(s) != null)
+        .map((s) => ({
+          t: s.time_local ? String(s.time_local).replace("T", " ").slice(5, 16) : String(s.time_utc || "").slice(5, 16),
+          v: Number(fm.pick(s)),
+          step: s,
+        }));
+
+      const vals = fcPoints.map((p) => p.v).filter((n) => isFinite(n));
+      const minV = vals.length ? Math.min(...vals).toFixed(1) : "-";
+      const maxV = vals.length ? Math.max(...vals).toFixed(1) : "-";
+      const avgV = vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : "-";
+      const curV = curStep && fm.pick(curStep) != null ? Number(fm.pick(curStep)).toFixed(1) : (vals[0] != null ? vals[0].toFixed(1) : "-");
+
+      if ($("apiModuleMetricTitle")) $("apiModuleMetricTitle").innerHTML = `<i data-lucide="cloud-sun-rain"></i><span>1 Data + 1 Graph — Forecast · ${fm.title}</span>`;
+      if ($("apiModuleMetricStats")) {
+        $("apiModuleMetricStats").innerHTML = `<span class="stat-pill">Now <strong>${curV} ${fm.unit}</strong></span><span class="stat-pill">Min <strong>${minV}</strong></span><span class="stat-pill">Avg <strong>${avgV}</strong></span><span class="stat-pill">Max <strong>${maxV}</strong></span>`;
+      }
+      if ($("apiModuleChartHeader")) $("apiModuleChartHeader").textContent = `${fm.title} (${fm.unit})`;
+      if ($("apiModuleChartBadge")) $("apiModuleChartBadge").textContent = `${curV} ${fm.unit}`;
+
+      const safePage = renderTablePagination(
+        $("apiModulePagination"),
+        fcPoints.length,
+        state.apiModulePage,
+        API_MODULE_PAGE_SIZE,
+        (nextPage) => {
+          state.apiModulePage = nextPage;
+          renderApiModuleDevice();
+        }
+      );
+      state.apiModulePage = safePage;
+      const pageRows = fcPoints.slice((safePage - 1) * API_MODULE_PAGE_SIZE, safePage * API_MODULE_PAGE_SIZE);
+
+      $("apiModuleTableHead").innerHTML = `<tr><th>Time</th><th>Weather Symbol</th><th>${fm.title}</th><th>Unit</th><th>Rain 1h</th><th>Wind</th></tr>`;
+      $("apiModuleTableBody").innerHTML = pageRows.map((pt) => {
+        const st = pt.step;
+        const rainStr = st.precipitation_1h != null ? `${Number(st.precipitation_1h).toFixed(1)} mm` : "-";
+        const windStr = st.wind_speed != null ? `${Number(st.wind_speed).toFixed(1)} km/h` : "-";
+        return `<tr>
+          <td>${pt.t}</td>
+          <td>${window.ERPIcons.weatherSymbolBadgeHtml(st.symbol)}</td>
+          <td><strong>${pt.v.toFixed(1)}</strong></td>
+          <td>${fm.unit}</td>
+          <td>${rainStr}</td>
+          <td>${windStr}</td>
+        </tr>`;
+      }).join("") || `<tr><td colspan="6">No forecast records available for this metric</td></tr>`;
+
+      const chartPts = fcPoints.slice(0, 36).map((p) => ({ t: p.t.slice(-5), v: p.v }));
+      window.ERPCharts.renderRealtimeSeries($("apiModuleChartCanvas"), $("apiModuleChartTooltip"), {
+        height: 290,
+        chartType: fm.chartType || "line",
+        series: chartPts.length ? [{ label: fm.title, unit: fm.unit, color: fm.color, points: chartPts }] : [],
+        emptyText: "No forecast series points available...",
+      });
+    }
+    window.ERPIcons.refresh();
+  }
+
+  function renderAlertsOnly(incidents, policies, history) {
     $("incidentsBody").innerHTML = incidents.map((inc) => `
       <tr>
         <td>${inc.policy_name}</td><td>${inc.device_name || inc.device_id}</td>
@@ -930,7 +1203,7 @@
       PAGE_SIZE,
       (nextPage) => {
         state.alertHistoryPage = nextPage;
-        renderAlertsAndExchange(incidents, policies, history, tokens, rows);
+        renderAlertsOnly(incidents, policies, history);
       }
     );
     state.alertHistoryPage = safeAlertPage;
@@ -941,52 +1214,6 @@
         <td>${h.rule_description}</td><td>${badge(h.delivery_status)}</td><td class="tabular-nums">${h.notification_count}</td>
       </tr>
     `).join("") || '<tr><td colspan="6">No alert history</td></tr>';
-
-    const q = ($("exchangeSearch").value || "").toLowerCase();
-    const filtered = rows.filter((r) => !q || r.code.toLowerCase().includes(q) || r.time.toLowerCase().includes(q));
-    $("exchangeTokenMeta").textContent = tokens.length
-      ? `Active Token: ${tokens[0].name} · Valid Until: ${tokens[0].valid_until_utc || "N/A"} · Limit: ${tokens[0].default_rows_per_request} rows/req`
-      : "Weather rows derived live from project Weather Station";
-    const f = (v) => (v == null ? "-" : Number(v).toFixed(1));
-    $("exchangeBody").innerHTML = filtered.map((r) => `
-      <tr>
-        <td><code>${r.code}</code></td><td>${r.time}</td><td>${f(r.temperature_avg)}</td><td>${f(r.humidity_avg)}</td>
-        <td>${f(r.deltat_avg)}</td><td>${f(r.dewpoint_avg)}</td><td>${f(r.atmos_pressure_avg)}</td><td>${f(r.msl_pressure)}</td>
-        <td>${f(r.rainfall)}</td><td>${f(r.rainfall_total)}</td><td>${f(r.wind_speed_avg)}</td><td>${f(r.wind_speed_min)}</td>
-        <td>${f(r.wind_speed_max)}</td><td>${f(r.wind_dir_deg_avg)}</td><td>${f(r.wind_dir_var_avg)}</td>
-        <td>${f(r.solar_rad_avg)}</td><td>${f(r.uv_index_avg)}</td>
-      </tr>
-    `).join("") || '<tr><td colspan="17">No exchange rows available</td></tr>';
-
-    renderExchangeRealtimeChart();
-  }
-
-  function renderExchangeRealtimeChart() {
-    const ordered = [...(state.exchangeRows || [])].reverse().slice(-32);
-    const specs = [];
-    if (ordered.length) {
-      EXCHANGE_COLUMN_SPECS.forEach((colSpec) => {
-        const pts = ordered
-          .filter((r) => r[colSpec.col] != null)
-          .map((r) => ({ t: String(r.time || "").slice(11, 16), v: Number(r[colSpec.col]) }));
-        if (pts.length) {
-          specs.push({
-            id: `ex_${colSpec.key}`,
-            title: colSpec.title,
-            unit: colSpec.unit,
-            icon: colSpec.icon,
-            cat: colSpec.cat,
-            series: [{ label: colSpec.title, unit: colSpec.unit, color: colSpec.color, points: pts }],
-          });
-        }
-      });
-    }
-    const primaryTemp = specs.find((s) => s.id === "ex_temperature") || specs[0];
-    window.ERPCharts.renderRealtimeSeries($("exchangeRealtimeCanvas"), $("exchangeRealtimeTooltip"), {
-      series: primaryTemp ? primaryTemp.series : [],
-      emptyText: "No Weather Exchange rows in selected project.",
-    });
-    window.ERPCharts.renderComponentChartsGrid($("exchangeComponentCharts"), specs);
   }
 
   function renderAudit(entries, sec = {}) {
@@ -1037,8 +1264,9 @@
     renderTelemetry(state.dash);
     renderForecast(state.forecast);
     renderFieldsAndAssets(state.fields, state.assets, state.dash.providers || []);
-    renderAlertsAndExchange(state.incidents, state.policies, state.alertHistory, state.exchangeTokens, state.exchangeRows);
+    renderAlertsOnly(state.incidents, state.policies, state.alertHistory);
     renderAudit(state.audit, state.security || state.dash.security || {});
+    renderApiModuleDevice();
 
     const mapPayload = {
       fields: state.fields,
@@ -1062,7 +1290,6 @@
       sel.innerHTML = (dash.projects || []).map((p) => `<option value="${p.id}">${formatWorkspaceLabel(p)}</option>`).join("");
     }
     sel.value = state.projectId;
-    $("exportCsvBtn").href = `/api/erp/v1/exchange/weather/export.csv?project_id=${encodeURIComponent(state.projectId)}`;
 
     const pq = `?project_id=${encodeURIComponent(state.projectId)}`;
     const [fields, assets, policies, alertHistory, incidents, exchange, forecast, audit, hist, sec] = await Promise.all([
@@ -1126,9 +1353,27 @@
     state.projectId = e.target.value;
     state.selectedDeviceId = "";
     state.selectedMetricFilter = "ALL";
+    state.apiModuleDeviceId = "";
+    state.apiModulePage = 1;
     refreshAll();
   });
-  $("exchangeSearch").addEventListener("input", () => rerenderAllViews());
+
+  document.querySelectorAll(".mode-tab-btn[data-api-mode]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.apiModuleMode = btn.dataset.apiMode;
+      state.apiModulePage = 1;
+      renderApiModuleDevice();
+    });
+  });
+
+  if ($("apiModuleDeviceSelect")) {
+    $("apiModuleDeviceSelect").addEventListener("change", (e) => {
+      state.apiModuleDeviceId = e.target.value;
+      state.apiModuleMetric = "";
+      state.apiModulePage = 1;
+      renderApiModuleDevice();
+    });
+  }
 
   $("syncBtn").addEventListener("click", async () => {
     try { await api("/api/erp/v1/sync/now", { method: "POST" }); }
@@ -1143,7 +1388,8 @@
   });
 
   document.querySelectorAll(".map-btn-group").forEach((grp) => {
-    const engine = grp.dataset.mapTarget === "overview" ? overviewMap : fullMap;
+    const t = grp.dataset.mapTarget;
+    const engine = t === "overview" ? overviewMap : t === "apimodule" ? apiModuleMap : fullMap;
     grp.addEventListener("click", (e) => {
       const btn = e.target.closest("button");
       if (!btn) return;

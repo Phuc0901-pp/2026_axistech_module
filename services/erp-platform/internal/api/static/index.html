@@ -28,8 +28,8 @@
         <div class="nav-section-label">Geospatial &amp; Assets</div>
         <button class="nav-item" data-tab="fields"><i data-lucide="satellite"></i><span>Geo Fields &amp; Satellite</span></button>
         <button class="nav-item" data-tab="assets"><i data-lucide="tractor"></i><span>Assets &amp; Providers</span></button>
-        <div class="nav-section-label">Exchange &amp; Governance</div>
-        <button class="nav-item" data-tab="exchange"><i data-lucide="database"></i><span>Weather Exchange (17)</span></button>
+        <div class="nav-section-label">API Modules &amp; Governance</div>
+        <button class="nav-item" data-tab="api-module"><i data-lucide="cpu"></i><span>API Module Device</span></button>
         <button class="nav-item" data-tab="incidents"><i data-lucide="bell-ring"></i><span>Alerts &amp; Incidents</span></button>
         <button class="nav-item" data-tab="audit"><i data-lucide="shield-check"></i><span>Security &amp; Audit Trail</span></button>
       </nav>
@@ -368,45 +368,77 @@
         </div>
       </section>
 
-      <!-- TAB 7: API EXCHANGE (17 COLS) + REALTIME GRAPH -->
-      <section id="tab-exchange" class="tab-panel">
+      <!-- TAB 7: API MODULE DEVICE (DEVICES + FORECAST LOCATION + 1 DATA / 1 GRAPH + 10 ROWS/PAGE) -->
+      <section id="tab-api-module" class="tab-panel">
         <div class="card">
           <div class="card-header">
-            <h3><i data-lucide="line-chart"></i><span>Weather Exchange Primary Overview</span></h3>
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+              <h3><i data-lucide="cpu"></i><span>API Module Device</span></h3>
+              <div class="api-module-mode-tabs">
+                <button type="button" class="mode-tab-btn active" data-api-mode="devices"><i data-lucide="hard-drive"></i><span>Devices</span></button>
+                <button type="button" class="mode-tab-btn" data-api-mode="forecast"><i data-lucide="cloud-sun-rain"></i><span>Forecast</span></button>
+              </div>
+            </div>
+            <span id="apiModuleLocationBadge" class="badge badge-info">Locating...</span>
           </div>
-          <div class="chart-wrap">
-            <canvas id="exchangeRealtimeCanvas" class="erp-canvas"></canvas>
-            <div id="exchangeRealtimeTooltip" class="chart-tooltip"></div>
+
+          <div id="apiModuleDeviceControls" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+            <label for="apiModuleDeviceSelect" class="sr-only">Device</label>
+            <select id="apiModuleDeviceSelect" class="select-input"></select>
+            <div id="apiModuleMetricPills" class="metric-pills"></div>
           </div>
-          <div style="margin-top:16px;">
-            <h4 style="font-size:0.86rem;margin-bottom:10px;display:flex;align-items:center;gap:6px;">
-              <i data-lucide="layout-grid" style="width:15px;height:15px;color:var(--accent)"></i>
-              <span>All 15 Weather Exchange Metric Components (Temp · RH · DewPt · Delta-T · Pressure · Rain · Wind · Solar · UV)</span>
-            </h4>
-            <div id="exchangeComponentCharts" class="component-charts-grid"></div>
+
+          <div id="apiModuleForecastControls" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+            <div id="apiModuleForecastMetricPills" class="metric-pills"></div>
           </div>
         </div>
+
         <div class="card">
-          <div class="card-header">
-            <h3><i data-lucide="database"></i><span>API Exchange Dataset: <code>tbncorp.weather</code> (17 Columns)</span></h3>
-            <div class="header-actions">
-              <input id="exchangeSearch" type="search" class="text-input" placeholder="Filter by code or time..." />
-              <a id="exportCsvBtn" class="btn btn-primary" href="/api/erp/v1/exchange/weather/export.csv"><i data-lucide="download"></i><span>Export CSV</span></a>
+          <div class="map-toolbar">
+            <h3 style="font-size:0.95rem;display:flex;align-items:center;gap:7px;">
+              <i data-lucide="map-pin" style="width:16px;height:16px;color:var(--accent)"></i>
+              <span id="apiModuleMapTitle">Active Device &amp; Target Geolocation</span>
+            </h3>
+            <div class="map-btn-group" data-map-target="apimodule">
+              <button class="map-chip active" data-layer="satellite">Satellite</button>
+              <button class="map-chip" data-layer="hybrid">Hybrid</button>
+              <button class="map-chip" data-layer="terrain">Terrain</button>
+              <button class="map-chip" data-layer="roadmap">Roadmap</button>
+              <button class="map-chip" data-fit="1"><i data-lucide="maximize-2"></i>Fit</button>
             </div>
           </div>
-          <div id="exchangeTokenMeta" class="token-meta"></div>
-          <div class="table-wrap">
-            <table class="data-table compact tabular-nums">
-              <thead>
-                <tr>
-                  <th>code</th><th>time (UTC)</th><th>temp</th><th>hum</th><th>delta_t</th>
-                  <th>dewpt</th><th>atm_p</th><th>msl_p</th><th>rain</th><th>rain_tot</th>
-                  <th>wind</th><th>w_min</th><th>w_max</th><th>w_dir</th><th>w_var</th>
-                  <th>solar</th><th>uv</th>
-                </tr>
-              </thead>
-              <tbody id="exchangeBody"></tbody>
-            </table>
+          <div id="apiModuleMap" class="map-canvas" style="height:310px;"></div>
+          <div class="map-footer">
+            <span id="apiModuleCoords" class="mono">GPS: Hover satellite map</span>
+            <span id="apiModuleGeoSummary" class="mono">WGS84 Verified</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 id="apiModuleMetricTitle"><i data-lucide="table"></i><span>1 Data + 1 Graph — Single-Scale ISO Telemetry</span></h3>
+            <div id="apiModuleMetricStats" class="component-chart-stats tabular-nums"></div>
+          </div>
+          <div class="api-module-pair-grid">
+            <div>
+              <div class="table-wrap">
+                <table class="data-table compact tabular-nums">
+                  <thead id="apiModuleTableHead"></thead>
+                  <tbody id="apiModuleTableBody"></tbody>
+                </table>
+              </div>
+              <div id="apiModulePagination" class="table-pagination"></div>
+            </div>
+            <div class="component-chart-card">
+              <div class="component-chart-head">
+                <strong id="apiModuleChartHeader" style="font-size:0.88rem;">Single-Metric Time-Series Graph</strong>
+                <span id="apiModuleChartBadge" class="badge badge-info tabular-nums">-</span>
+              </div>
+              <div class="chart-wrap">
+                <canvas id="apiModuleChartCanvas" class="erp-canvas" style="height:290px;"></canvas>
+                <div id="apiModuleChartTooltip" class="chart-tooltip"></div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
